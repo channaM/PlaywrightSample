@@ -113,7 +113,7 @@ export class ModelDrivenAppPage {
 
     try {
       return new URL(currentUrl).origin;
-    } catch (error) {
+    } catch {
       throw new Error(
         `Failed to extract base URL from current page URL "${currentUrl}". ` +
           'Please provide a valid baseAppUrl in the constructor.'
@@ -225,7 +225,7 @@ export class ModelDrivenAppPage {
     let url: URL;
     try {
       url = new URL(baseAppUrl);
-    } catch (error) {
+    } catch {
       throw new Error(
         `Invalid base URL: "${baseAppUrl}". Please check your BASE_APP_URL environment variable or constructor parameter.`
       );
@@ -299,7 +299,7 @@ export class ModelDrivenAppPage {
     let url: URL;
     try {
       url = new URL(baseAppUrl);
-    } catch (error) {
+    } catch {
       throw new Error(
         `Invalid base URL: "${baseAppUrl}". Please check your BASE_APP_URL environment variable or constructor parameter.`
       );

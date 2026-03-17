@@ -6,7 +6,7 @@
 
 import { Page } from '@playwright/test';
 import { PowerAppsPageLocators } from '../../locators/power-apps.locators';
-import { IPageWaiter, PageWaiterOptions } from './page-waiter.interface';
+import { IPageWaiter } from './page-waiter.interface';
 import { waitForSpinnerToDisappear } from '../../utils/app-helpers';
 
 /**
@@ -99,7 +99,7 @@ export class AppsPageWaiter implements IPageWaiter {
    * Retry data load errors up to maxRetries times
    * Handles "We couldn't load your data" error with retry logic
    */
-  private async retryDataLoadErrors(timeout: number): Promise<void> {
+  private async retryDataLoadErrors(_timeout: number): Promise<void> {
     const errorMessage = this.page.locator('text="We couldn\'t load your data"');
     const tryAgainButton = this.page.locator('button:has-text("Try again")');
 

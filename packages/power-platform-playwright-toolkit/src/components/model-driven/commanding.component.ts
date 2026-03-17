@@ -404,7 +404,7 @@ export class CommandingComponent {
    * Get button locator by name or aria-label
    * @private
    */
-  private getButtonLocator(buttonName: string, context = CommandBarContext.Form): Locator {
+  private getButtonLocator(buttonName: string, _context = CommandBarContext.Form): Locator {
     // Try multiple strategies to find the button
     return this.page
       .locator('[data-id="CommandBar"]')

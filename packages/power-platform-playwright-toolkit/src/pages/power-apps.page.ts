@@ -9,7 +9,7 @@ import { Page, Locator, expect } from '@playwright/test';
 import { PowerAppsPageLocators } from '../locators/power-apps.locators';
 import { CanvasAppPage } from './canvas-app.page';
 import { ModelDrivenAppPage } from './model-driven-app.page';
-import { AppType, EndPointURL, NavigationOptions, SearchOptions } from '../types';
+import { AppType, NavigationOptions, SearchOptions } from '../types';
 import { waitForSpinnerToDisappear } from '../utils/app-helpers';
 import { findWithFallbackRole } from '../utils/locator-helpers';
 import { PowerPlatformNavigator } from '../core/power-platform-navigator';

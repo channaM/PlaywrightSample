@@ -26,7 +26,7 @@ class GenericPageWaiter implements IPageWaiter {
     private locators: PowerAppsPageLocators
   ) {}
 
-  async waitForPageLoad(timeout: number = 60000): Promise<void> {
+  async waitForPageLoad(_timeout: number = 60000): Promise<void> {
     console.log('[GenericPageWaiter] Waiting for page to load...');
     await this.page.waitForLoadState('domcontentloaded');
     await this.page.waitForTimeout(5000);
