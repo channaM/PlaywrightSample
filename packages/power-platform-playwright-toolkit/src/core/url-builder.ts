@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * URLBuilder
  * Centralizes URL construction for Power Platform maker portal pages

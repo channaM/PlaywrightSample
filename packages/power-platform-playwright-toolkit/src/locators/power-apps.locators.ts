@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Power Apps Page Locators using Playwright Best Practices
  * Centralized locator management for Power Apps Maker Portal

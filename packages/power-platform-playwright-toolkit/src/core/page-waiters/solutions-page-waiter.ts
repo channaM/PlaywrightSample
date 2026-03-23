@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Solutions Page Waiter
  * Handles waiting for Power Apps maker portal Solutions page to load

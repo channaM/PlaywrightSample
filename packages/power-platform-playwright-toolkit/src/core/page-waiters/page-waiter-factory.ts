@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Page Waiter Factory
  * Creates appropriate page waiter instances based on page type

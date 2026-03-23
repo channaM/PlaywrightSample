@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * App Launcher Factory
  * Creates appropriate app launcher based on app type

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * FormContext Example
  * Demonstrates how to use formContext helpers to interact with Model-Driven App forms

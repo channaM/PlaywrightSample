@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * App Testing Helper Utilities
  * Common utility functions for Canvas and Model Driven app testing

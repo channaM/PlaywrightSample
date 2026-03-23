@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Test Fixtures for Power Platform Tests
  * Provides enhanced test fixtures with automatic certificate authentication setup

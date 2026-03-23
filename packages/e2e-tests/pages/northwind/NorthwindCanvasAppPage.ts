@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Northwind Canvas App Page
  * Custom page class for Northwind Canvas app with app-specific methods

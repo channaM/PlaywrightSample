@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * App Launcher Interface
  * Defines common contract for launching and interacting with Power Platform apps

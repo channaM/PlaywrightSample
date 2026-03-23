@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /*!
  * Microsoft Authentication Helper for Power Apps
  * Based on playwright-ms-auth package

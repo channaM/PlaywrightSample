@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Page Waiter Interface
  * Defines contract for all page-specific wait strategies

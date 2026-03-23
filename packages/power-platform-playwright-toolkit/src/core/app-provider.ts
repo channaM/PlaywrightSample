@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * App Provider
  * High-level provider for launching and managing Power Platform apps

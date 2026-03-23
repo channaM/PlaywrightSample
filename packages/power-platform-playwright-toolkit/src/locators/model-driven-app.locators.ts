@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Model Driven App Locators
  * Centralized selectors for Model Driven App creation, editing, and testing

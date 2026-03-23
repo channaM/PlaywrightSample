@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * GenUX test utilities
  * Shared helpers for generated Power Apps form testing

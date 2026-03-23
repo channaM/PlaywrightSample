@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Home Page Waiter
  * Handles waiting for Power Apps maker portal Home page to load

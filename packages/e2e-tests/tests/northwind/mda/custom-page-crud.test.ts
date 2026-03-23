@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Custom Page CRUD Tests for Northwind Model-Driven App - Account Entity
  *

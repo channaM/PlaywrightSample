@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Power Platform Apps Testing Library
  * Independent library for Canvas and Model Driven app testing

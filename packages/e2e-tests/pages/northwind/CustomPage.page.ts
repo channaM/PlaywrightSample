@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 import { expect, FrameLocator, Page } from '@playwright/test';
 import { TimeOut } from 'power-platform-playwright-toolkit/dist/utils/config';
 import {

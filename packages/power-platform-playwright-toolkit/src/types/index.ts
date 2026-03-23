@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Shared Types and Interfaces for Power Apps Page Objects
  * Extracted and enhanced from lib/old
