@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * FormComponent
  * Handles all form operations for Model-Driven Apps

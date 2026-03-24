@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Canvas App Page Object Model
  * Provides methods for creating, editing, and testing Canvas Apps

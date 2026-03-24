@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * FormContext Helper
  * Utilities for accessing and interacting with Model-Driven App formContext

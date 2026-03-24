@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Base Locator Management System for Power Apps Testing
  * Follows Playwright best practices for maintainable selectors

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Page Waiters Module
  * Exports all page waiter interfaces and implementations

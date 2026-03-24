@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Model Driven App Page Object Model
  * Provides methods for creating, editing, and testing Model Driven Apps

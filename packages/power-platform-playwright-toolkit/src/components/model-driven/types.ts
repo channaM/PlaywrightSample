@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Type definitions for Model-Driven App Components
  * Common types used across component abstractions

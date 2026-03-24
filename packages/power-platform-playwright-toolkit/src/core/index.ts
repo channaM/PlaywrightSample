@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Core Infrastructure Exports
  * Factory and Provider patterns for launching Power Platform apps

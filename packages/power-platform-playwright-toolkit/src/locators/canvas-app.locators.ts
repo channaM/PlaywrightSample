@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Canvas App Locators
  * Centralized selectors for Canvas App creation, editing, and testing

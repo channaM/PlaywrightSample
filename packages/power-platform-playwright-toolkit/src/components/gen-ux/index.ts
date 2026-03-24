@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * GenUX Components
  * Page object and constants for Power Apps Maker Portal GenUX AI designer

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * CommandingComponent
  * Handles command bar operations for Model-Driven Apps

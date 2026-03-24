@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Power Apps Page Object Model
  * Main entry point for interacting with Power Apps Maker Portal

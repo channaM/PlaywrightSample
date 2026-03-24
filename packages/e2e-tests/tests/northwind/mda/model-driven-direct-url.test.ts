@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Model-Driven App - Direct URL Navigation Test
  * Demonstrates opening Model-Driven app directly from URL using baseAppUrl property

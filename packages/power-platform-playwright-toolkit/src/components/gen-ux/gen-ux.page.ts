@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * GenUX Page Object
  * Provides interactions with the Power Apps Maker Portal GenUX designer.

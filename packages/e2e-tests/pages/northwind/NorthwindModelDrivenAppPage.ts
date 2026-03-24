@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Northwind Model-driven App Page
  * Custom page class for Northwind Model-driven app with app-specific methods

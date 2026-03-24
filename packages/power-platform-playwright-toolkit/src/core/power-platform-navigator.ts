@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Power Platform Navigator
  * Orchestrates navigation to Power Platform maker portal pages

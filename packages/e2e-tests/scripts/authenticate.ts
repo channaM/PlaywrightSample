@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /*!
  * Authentication setup script for Power Apps
  * Run this before tests to authenticate to Microsoft/Power Apps

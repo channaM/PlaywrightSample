@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * Model-Driven App Components
  * Reusable component abstractions for common Model-Driven App UI patterns

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * PowerApps Launcher
  * IAppLauncher adapter for the Power Apps Maker Portal (make.powerapps.com).

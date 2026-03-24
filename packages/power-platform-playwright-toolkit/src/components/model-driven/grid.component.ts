@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * GridComponent
  * Handles all grid/list view operations for Model-Driven Apps

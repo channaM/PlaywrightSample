@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * GenUX shared test steps
  * Standard Phases 1–4 (generation) and teardown used by all gen-ux tests

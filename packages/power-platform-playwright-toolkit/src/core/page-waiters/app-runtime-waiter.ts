@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
 /**
  * App Runtime Waiter
  * Handles waiting for Power Platform apps to load after launch
