@@ -1,5 +1,6 @@
 name: pp-playwright-e2e-$(Rev:rrr)
 
+# https://dev.azure.com/msazure/OneAgile/_build/index?definitionId=456263&_a=completed
 # Run on schedule (weekdays 6 AM UTC) and allow manual trigger.
 # Not triggered on push — tests require a live Power Platform environment.
 trigger: none
@@ -76,13 +77,14 @@ parameters:
   - name: testEnvironment
     displayName: Target environment
     type: string
-    default: dev
+    default: preview
     values:
       - dev
       - staging
+      - preview
 
 extends:
-  template: v1/Office.Official.PipelineTemplate.yml@OfficePipelineTemplates
+  template: v1/Office.Unofficial.PipelineTemplate.yml@OfficePipelineTemplates
   parameters:
     sdl:
       codeql:
