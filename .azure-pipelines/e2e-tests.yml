@@ -13,13 +13,6 @@ schedules:
         - main
     always: true
 
-resources:
-  repositories:
-    - repository: templates
-      type: git
-      name: OneBranch.Pipelines/GovernedTemplates
-      ref: refs/heads/main
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Pipeline-level variables.
 # Non-secret values are defined here and auto-mapped as env vars in all scripts.
@@ -91,6 +84,7 @@ stages:
       - job: GenUXTests
         displayName: 'Gen UX Tests'
         timeoutInMinutes: 60
+        pool: '1ES-Playwright-PPUX'
         steps:
           - template: /.azure-pipelines/steps/e2e-setup.yml@self
             parameters:
@@ -124,6 +118,7 @@ stages:
       - job: NorthwindCanvasTests
         displayName: 'Northwind Canvas Tests'
         timeoutInMinutes: 60
+        pool: '1ES-Playwright-PPUX'
         steps:
           - template: /.azure-pipelines/steps/e2e-setup.yml@self
             parameters:
@@ -157,6 +152,7 @@ stages:
       - job: NorthwindMDATests
         displayName: 'Northwind Model-Driven App Tests'
         timeoutInMinutes: 60
+        pool: '1ES-Playwright-PPUX'
         steps:
           - template: /.azure-pipelines/steps/e2e-setup.yml@self
             parameters:
@@ -183,19 +179,20 @@ stages:
               targetPath: $(testResultsDir)
               artifact: BlobReport-NorthwindMDA
 
-      # ───────────────────────────────────────────────────────────────────────
-      # Job 4: Merge all blob reports → single HTML report + JUnit XML.
-      # Runs after all test jobs (even on failure) so results are always
-      # consolidated. Blob reports from each job are downloaded and merged
-      # using the Playwright merge-reports CLI.
-      # ───────────────────────────────────────────────────────────────────────
+  # ─────────────────────────────────────────────────────────────────────────
+  # Stage 2: Merge all blob reports → single HTML report + JUnit XML.
+  # Runs after all test jobs (even on failure) so results are always
+  # consolidated. Blob reports from each job are downloaded and merged
+  # using the Playwright merge-reports CLI.
+  # ─────────────────────────────────────────────────────────────────────────
+  - stage: MergeReports
+    displayName: 'Merge Test Reports'
+    dependsOn: E2ETests
+    condition: succeededOrFailed()
+    jobs:
       - job: MergeReports
         displayName: 'Merge Test Reports'
-        dependsOn:
-          - GenUXTests
-          - NorthwindCanvasTests
-          - NorthwindMDATests
-        condition: succeededOrFailed()
+        pool: '1ES-Playwright-PPUX'
         timeoutInMinutes: 30
         steps:
           - checkout: self
