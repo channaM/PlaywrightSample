@@ -33,7 +33,7 @@ variables:
   - name: MS_AUTH_WAIT_FOR_MSAL_TOKENS
     value: true
   - name: MS_AUTH_MSAL_TOKEN_TIMEOUT
-    value: 30000
+    value: 86400000
   - name: AZURE_TENANT_ID
     value: 'capintegration01.onmicrosoft.com'
 
