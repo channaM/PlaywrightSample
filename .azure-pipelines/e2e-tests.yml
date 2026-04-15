@@ -23,7 +23,7 @@ variables:
   - name: nodeVersion
     value: '20.x'
   - name: testResultsDir
-    value: $(Build.ArtifactStagingDirectory)/test-results
+    value: $(Build.ArtifactStagingDirectory)
   - name: SYSTEM_DEBUG
     value: 'true'
 
@@ -76,34 +76,11 @@ stages:
           - template: /.azure-pipelines/steps/e2e-setup.yml@self
             parameters:
               nodeVersion: $(nodeVersion)
+          - template: /.azure-pipelines/steps/run-playwright-tests.yml@self
+            parameters:
+              project: gen-ux
+              artifactName: BlobReport-GenUX
 
-          - bash: |
-              cd packages/e2e-tests
-              npx playwright test \
-                --project=gen-ux \
-                --reporter=dot,blob,junit \
-                --output="$(testResultsDir)/artifacts"
-            displayName: Run Playwright Tests
-            env:
-              CI: true
-              MS_AUTH_EMAIL: $(msAuthEmail)
-              MS_AUTH_CREDENTIAL_PROVIDER: local-file
-              MS_AUTH_CREDENTIAL_TYPE: certificate
-              MS_AUTH_LOCAL_FILE_PATH: $(certFilePath)
-              OUTPUT_DIRECTORY: $(testResultsDir)
-
-          - task: PublishPipelineArtifact@1
-            displayName: Publish Gen UX blob report
-            condition: succeededOrFailed()
-            inputs:
-              targetPath: $(testResultsDir)
-              artifact: BlobReport-GenUX
-
-      # ───────────────────────────────────────────────────────────────────────
-      # Job 2: Northwind Canvas App tests
-      # Uses the 'canvas-app' Playwright project (testDir set in playwright.config.ts).
-      # Uses canvas/maker-portal storage state.
-      # ───────────────────────────────────────────────────────────────────────
       - job: NorthwindCanvasTests
         displayName: 'Northwind Canvas Tests'
         timeoutInMinutes: 60
@@ -112,34 +89,11 @@ stages:
           - template: /.azure-pipelines/steps/e2e-setup.yml@self
             parameters:
               nodeVersion: $(nodeVersion)
+          - template: /.azure-pipelines/steps/run-playwright-tests.yml@self
+            parameters:
+              project: canvas-app
+              artifactName: BlobReport-NorthwindCanvas
 
-          - bash: |
-              cd packages/e2e-tests
-              npx playwright test \
-                --project=canvas-app \
-                --reporter=dot,blob,junit \
-                --output="$(testResultsDir)/artifacts"
-            displayName: Run Playwright Tests
-            env:
-              CI: true
-              MS_AUTH_EMAIL: $(msAuthEmail)
-              MS_AUTH_CREDENTIAL_PROVIDER: local-file
-              MS_AUTH_CREDENTIAL_TYPE: certificate
-              MS_AUTH_LOCAL_FILE_PATH: $(certFilePath)
-              OUTPUT_DIRECTORY: $(testResultsDir)
-
-          - task: PublishPipelineArtifact@1
-            displayName: Publish Northwind Canvas blob report
-            condition: succeededOrFailed()
-            inputs:
-              targetPath: $(testResultsDir)
-              artifact: BlobReport-NorthwindCanvas
-
-      # ───────────────────────────────────────────────────────────────────────
-      # Job 3: Northwind Model-Driven App tests
-      # Uses the 'model-driven-app' Playwright project (testDir set in playwright.config.ts).
-      # Requires both canvas auth state AND a separate MDA auth state.
-      # ───────────────────────────────────────────────────────────────────────
       - job: NorthwindMDATests
         displayName: 'Northwind Model-Driven App Tests'
         timeoutInMinutes: 60
@@ -149,28 +103,10 @@ stages:
             parameters:
               nodeVersion: $(nodeVersion)
               authenticateMDA: true
-
-          - bash: |
-              cd packages/e2e-tests
-              npx playwright test \
-                --project=model-driven-app \
-                --reporter=dot,blob,junit \
-                --output="$(testResultsDir)/artifacts"
-            displayName: Run Playwright Tests
-            env:
-              CI: true
-              MS_AUTH_EMAIL: $(msAuthEmail)
-              MS_AUTH_CREDENTIAL_PROVIDER: local-file
-              MS_AUTH_CREDENTIAL_TYPE: certificate
-              MS_AUTH_LOCAL_FILE_PATH: $(certFilePath)
-              OUTPUT_DIRECTORY: $(testResultsDir)
-
-          - task: PublishPipelineArtifact@1
-            displayName: Publish Northwind MDA blob report
-            condition: succeededOrFailed()
-            inputs:
-              targetPath: $(testResultsDir)
-              artifact: BlobReport-NorthwindMDA
+          - template: /.azure-pipelines/steps/run-playwright-tests.yml@self
+            parameters:
+              project: model-driven-app
+              artifactName: BlobReport-NorthwindMDA
 
   # ─────────────────────────────────────────────────────────────────────────
   # Stage 2: Merge all blob reports → single HTML report + JUnit XML.
@@ -230,14 +166,14 @@ stages:
               path: $(Pipeline.Workspace)/blob-reports/northwind-mda
 
           # Merge all blob dirs → unified HTML report + JUnit XML
-          - script: |
-              cd packages/e2e-tests
+          - bash: |
               npx playwright merge-reports \
                 --reporter=html,junit \
                 $(Pipeline.Workspace)/blob-reports/gen-ux \
                 $(Pipeline.Workspace)/blob-reports/northwind-canvas \
                 $(Pipeline.Workspace)/blob-reports/northwind-mda
             displayName: Merge Playwright reports
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
             env:
               PLAYWRIGHT_HTML_OUTPUT_FOLDER: $(Build.ArtifactStagingDirectory)/merged-report
               PLAYWRIGHT_JUNIT_OUTPUT_NAME: $(Build.ArtifactStagingDirectory)/merged-report/test-results.xml

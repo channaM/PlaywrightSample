@@ -93,10 +93,9 @@ steps:
   # 3. Create canvas / maker-portal auth state (used by gen-ux and canvas jobs).
   #    Overrides MS_AUTH_CREDENTIAL_PROVIDER to use the locally decoded cert file
   #    instead of re-fetching from Key Vault at runtime.
-  - script: |
-      cd packages/e2e-tests
-      npx tsx scripts/authenticate.ts
+  - script: npx tsx scripts/authenticate.ts
     displayName: Authenticate — canvas / maker portal
+    workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
     env:
       CI: true
       MS_AUTH_EMAIL: $(msAuthEmail)
@@ -109,10 +108,9 @@ steps:
   # Cert is already on disk from step 2; just run headful auth and verify state.
   - ${{ if eq(parameters.authenticateMDA, true) }}:
       # 4. Run MDA headful auth with local cert (pnpm script: tsx scripts/authenticate.ts --headful --mda)
-      - script: |
-          cd packages/e2e-tests
-          pnpm run auth:mda:headful
+      - script: pnpm run auth:mda:headful
         displayName: Authenticate — Model-Driven App (headful + cert)
+        workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
         env:
           CI: true
           MS_AUTH_EMAIL: $(msAuthEmail)

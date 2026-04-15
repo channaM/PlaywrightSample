@@ -1,0 +1,31 @@
+# Reusable step template for running Playwright tests and publishing the blob report.
+# Used by GenUXTests, NorthwindCanvasTests, and NorthwindMDATests jobs.
+
+parameters:
+  - name: project
+    type: string
+  - name: artifactName
+    type: string
+
+steps:
+  - bash: |
+      npx playwright test \
+        --project=${{ parameters.project }} \
+        --reporter=dot,blob,junit \
+        --output="$(testResultsDir)"
+    displayName: 'Run Playwright Tests (${{ parameters.project }})'
+    workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+    env:
+      CI: true
+      MS_AUTH_EMAIL: $(msAuthEmail)
+      MS_AUTH_CREDENTIAL_PROVIDER: local-file
+      MS_AUTH_CREDENTIAL_TYPE: certificate
+      MS_AUTH_LOCAL_FILE_PATH: $(certFilePath)
+      OUTPUT_DIRECTORY: $(testResultsDir)
+
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish blob report (${{ parameters.artifactName }})'
+    condition: succeededOrFailed()
+    inputs:
+      targetPath: $(testResultsDir)
+      artifact: ${{ parameters.artifactName }}

@@ -84,28 +84,8 @@ export default defineConfig({
     ? [
         ['dot'],
         ['blob', { outputDir: path.join(getEnvironmentConfig().outputDirectory, 'blob-report') }],
-        [
-          'junit',
-          {
-            outputFile: path.join(
-              getEnvironmentConfig().outputDirectory,
-              'artifacts',
-              'testResults',
-              `test-results-${process.env.SHARD_INDEX ?? 1}.xml`
-            ),
-          },
-        ],
       ]
-    : [
-        ['list'],
-        [
-          'html',
-          {
-            outputFolder: path.join(getEnvironmentConfig().outputDirectory, 'html-report'),
-            open: 'never',
-          },
-        ],
-      ],
+    : [['list'], ['html', { open: 'never' }]],
 
   /* Shared settings for all projects */
   use: {
@@ -182,7 +162,6 @@ export default defineConfig({
       name: 'default',
       testDir: getEnvironmentConfig().testDirectory,
       testMatch: '**/*.test.ts',
-      // testIgnore: ['**/mda/**/*.test.ts', '**/gen-ux/**/*.test.ts'],
       use: {
         // Use default storage state
         storageState: process.env.MS_AUTH_EMAIL
