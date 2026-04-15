@@ -8,6 +8,13 @@ parameters:
     type: string
 
 steps:
+  - script: |
+      npx playwright install --with-deps chromium
+    workingDirectory: '$(Build.SourcesDirectory)/packages/e2e-tests'
+    failOnStderr: false
+    displayName: 'Install Playwright Dependencies'
+    timeoutInMinutes: 20
+
   - bash: |
       npx playwright test \
         --project=${{ parameters.project }} \
