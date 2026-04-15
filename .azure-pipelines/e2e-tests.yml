@@ -202,7 +202,7 @@ stages:
           - script: npm install -g @microsoft/rush
             displayName: Install Rush
 
-          - script: node common/scripts/install-run-rush.js install
+          - script: node common/scripts/install-run-rush.js install --bypass-policy
             displayName: Rush Install
 
           # Download blob reports from each test job into named subdirs

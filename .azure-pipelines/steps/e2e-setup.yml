@@ -34,7 +34,7 @@ steps:
   - script: npm install -g @microsoft/rush
     displayName: Install Rush
 
-  - script: node common/scripts/install-run-rush.js install
+  - script: node common/scripts/install-run-rush.js install --bypass-policy
     displayName: Rush Install
 
   - script: node common/scripts/install-run-rush.js build --to power-platform-playwright-toolkit
