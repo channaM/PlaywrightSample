@@ -24,6 +24,8 @@ variables:
     value: '20.x'
   - name: testResultsDir
     value: $(Build.ArtifactStagingDirectory)/test-results
+  - name: SYSTEM_DEBUG
+    value: 'true'
 
   # ── Auth ────────────────────────────────────────────────────────────────────
   - name: msAuthEmail
