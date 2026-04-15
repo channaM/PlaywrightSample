@@ -17,14 +17,6 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 const playwrightTestRunName = 'Playwright Power Platform E2E Tests';
 
-/**
- * Helper function to get grep pattern from environment
- */
-function getGrepPattern(): RegExp | undefined {
-  const grepPattern = process.env.PW_GREP;
-  return grepPattern ? new RegExp(grepPattern) : undefined;
-}
-
 // Check all required environment variables
 // Skip storage state validation in CI, when listing files, or in worker processes
 const isMainProcess = !process.env.TEST_WORKER_INDEX && !process.env.PLAYWRIGHT_WORKER;
@@ -149,9 +141,6 @@ export default defineConfig({
       args: ['--start-maximized', '--window-size=1920,1080'],
     },
   },
-
-  /* Test filtering */
-  grep: getGrepPattern(),
 
   /* Projects for different test types */
   projects: [
