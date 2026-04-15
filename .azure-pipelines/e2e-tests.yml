@@ -97,7 +97,7 @@ stages:
                 --project=gen-ux \
                 --reporter=dot,blob,junit \
                 --output="$(testResultsDir)/artifacts"
-            displayName: Run Gen UX tests
+            displayName: Run Playwright Tests
             env:
               CI: true
               MS_AUTH_EMAIL: $(msAuthEmail)
@@ -131,7 +131,7 @@ stages:
                 --project=canvas-app \
                 --reporter=dot,blob,junit \
                 --output="$(testResultsDir)/artifacts"
-            displayName: Run Northwind Canvas tests
+            displayName: Run Playwright Tests
             env:
               CI: true
               MS_AUTH_EMAIL: $(msAuthEmail)
@@ -166,7 +166,7 @@ stages:
                 --project=model-driven-app \
                 --reporter=dot,blob,junit \
                 --output="$(testResultsDir)/artifacts"
-            displayName: Run Northwind MDA tests
+            displayName: Run Playwright Tests
             env:
               CI: true
               MS_AUTH_EMAIL: $(msAuthEmail)
@@ -181,14 +181,18 @@ stages:
 
   # ─────────────────────────────────────────────────────────────────────────
   # Stage 2: Merge all blob reports → single HTML report + JUnit XML.
-  # Runs after all test jobs (even on failure) so results are always
-  # consolidated. Blob reports from each job are downloaded and merged
-  # using the Playwright merge-reports CLI.
+  # Only runs if at least one test job succeeded (produced a blob report).
+  # Skipped when all test jobs fail — nothing to merge.
   # ─────────────────────────────────────────────────────────────────────────
   - stage: MergeReports
     displayName: 'Merge Test Reports'
     dependsOn: E2ETests
-    condition: succeededOrFailed()
+    condition: >-
+      or(
+        eq(stageDependencies.E2ETests.GenUXTests.result, 'Succeeded'),
+        eq(stageDependencies.E2ETests.NorthwindCanvasTests.result, 'Succeeded'),
+        eq(stageDependencies.E2ETests.NorthwindMDATests.result, 'Succeeded')
+      )
     jobs:
       - job: MergeReports
         displayName: 'Merge Test Reports'
