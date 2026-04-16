@@ -1,5 +1,6 @@
 name: pp-playwright-e2e-$(Rev:rrr)
 
+# https://dev.azure.com/dynamicscrm/OneCRM/_build?definitionId=31659&_a=summary DO NOT REMOVE
 # Run on schedule (weekdays 6 AM UTC) and allow manual trigger.
 # Not triggered on push — tests require a live Power Platform environment.
 trigger: none
