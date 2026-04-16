@@ -28,9 +28,21 @@ steps:
       testRunTitle: '${{ parameters.artifactName }}'
       failTaskOnFailedTests: false
 
+  - pwsh: |
+      $blobReportDir = "$(testResultsDir)/blob-report"
+      if (Test-Path $blobReportDir) {
+        Write-Host "Blob report found: $blobReportDir"
+        Write-Host "##vso[task.setvariable variable=BLOB_REPORT_EXISTS]true"
+      } else {
+        Write-Host "Blob report not found: $blobReportDir"
+        Write-Host "##vso[task.setvariable variable=BLOB_REPORT_EXISTS]false"
+      }
+    displayName: 'Check if blob report exists'
+    condition: succeededOrFailed()
+
   - task: PublishPipelineArtifact@1
     displayName: 'Publish blob report (${{ parameters.artifactName }})'
-    condition: succeededOrFailed()
+    condition: and(succeededOrFailed(), eq(variables.BLOB_REPORT_EXISTS, 'true'))
     inputs:
-      targetPath: $(testResultsDir)
+      targetPath: $(testResultsDir)/blob-report
       artifact: ${{ parameters.artifactName }}
