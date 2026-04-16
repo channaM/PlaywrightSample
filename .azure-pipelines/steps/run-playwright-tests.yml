@@ -8,17 +8,9 @@ parameters:
     type: string
 
 steps:
-  - script: |
-      npx playwright install --with-deps chromium
-    workingDirectory: '$(Build.SourcesDirectory)/packages/e2e-tests'
-    failOnStderr: false
-    displayName: 'Install Playwright Dependencies'
-    timeoutInMinutes: 20
-
   - bash: |
       npx playwright test \
         --project=${{ parameters.project }} \
-        --reporter=dot,blob,junit \
         --output="$(testResultsDir)"
     displayName: 'Run Playwright Tests (${{ parameters.project }})'
     workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
@@ -29,6 +21,16 @@ steps:
       MS_AUTH_CREDENTIAL_TYPE: certificate
       MS_AUTH_LOCAL_FILE_PATH: $(certFilePath)
       OUTPUT_DIRECTORY: $(testResultsDir)
+      PLAYWRIGHT_JUNIT_OUTPUT_NAME: $(testResultsDir)/junit-${{ parameters.project }}.xml
+
+  - task: PublishTestResults@2
+    displayName: 'Publish JUnit test results (${{ parameters.artifactName }})'
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFormat: JUnit
+      testResultsFiles: '$(testResultsDir)/junit-${{ parameters.project }}.xml'
+      testRunTitle: '${{ parameters.artifactName }}'
+      failTaskOnFailedTests: false
 
   - task: PublishPipelineArtifact@1
     displayName: 'Publish blob report (${{ parameters.artifactName }})'
