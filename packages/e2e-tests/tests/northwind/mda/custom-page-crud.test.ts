@@ -112,7 +112,11 @@ async function createAccount(
     .catch(() => false);
   if (!newRecordVisible) {
     console.log('New record button not visible — re-navigating to custom page via sidebar');
-    const sidebarItem = page.locator(`[role="presentation"][title="${CUSTOM_PAGE_NAME}"]`).first();
+    const sidebarItem = page
+      .locator(
+        `[role="presentation"][title="${CUSTOM_PAGE_NAME}"], a[title="${CUSTOM_PAGE_NAME}"], a[aria-label="${CUSTOM_PAGE_NAME}"]`
+      )
+      .first();
     await sidebarItem.waitFor({ state: 'visible', timeout: 15000 });
     await sidebarItem.click();
     await page.waitForTimeout(3000);
@@ -140,7 +144,11 @@ async function createAccount(
   await page.goto(MODEL_DRIVEN_APP_URL!, { waitUntil: 'load', timeout: 60000 });
   // Wait for MDA ready signal before clicking into the canvas page
   await page.locator('[role="menuitem"]').first().waitFor({ state: 'visible', timeout: 30000 });
-  const refreshSidebar = page.locator(`[role="presentation"][title="${CUSTOM_PAGE_NAME}"]`).first();
+  const refreshSidebar = page
+    .locator(
+      `[role="presentation"][title="${CUSTOM_PAGE_NAME}"], a[title="${CUSTOM_PAGE_NAME}"], a[aria-label="${CUSTOM_PAGE_NAME}"]`
+    )
+    .first();
   await refreshSidebar.waitFor({ state: 'visible', timeout: 30000 });
   await refreshSidebar.click();
   // Wait for the newly created account to appear in the gallery
@@ -193,8 +201,11 @@ test.describe('Custom Page CRUD - Account Entity', () => {
 
     // Navigate to AccountsCustomPage via sidebar (done once for all tests)
     const sidebarItem = sharedPage
-      .locator(`[role="presentation"][title="${CUSTOM_PAGE_NAME}"]`)
+      .locator(
+        `[role="presentation"][title="${CUSTOM_PAGE_NAME}"], a[title="${CUSTOM_PAGE_NAME}"], a[aria-label="${CUSTOM_PAGE_NAME}"]`
+      )
       .first();
+
     await sidebarItem.waitFor({ state: 'visible', timeout: 30000 });
     await sidebarItem.click();
     await sharedPage.waitForTimeout(3000);

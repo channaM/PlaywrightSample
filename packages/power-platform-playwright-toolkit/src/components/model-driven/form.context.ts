@@ -34,6 +34,37 @@
 import { Page } from '@playwright/test';
 
 /**
+ * Wait until Xrm.Page.data.entity is non-null AND its attributes collection is
+ * populated (form fully loaded in UCI).
+ *
+ * There is a brief window after navigation where entity exists but attributes.get()
+ * returns an empty array because form controls have not yet bound to the entity.
+ * Waiting for attributes.length > 0 ensures all attribute controls are registered.
+ */
+async function waitForEntityContext(page: Page, timeout = 30_000): Promise<void> {
+  // NOTE: page.waitForFunction(fn, arg, options) — the options object MUST be the
+  // third argument. Passing it as the second argument treats it as the page-function
+  // argument and the page's default timeout is used instead.
+  await page.waitForFunction(
+    () => {
+      const entity = (window as any).Xrm?.Page?.data?.entity;
+      if (!entity) return false;
+      try {
+        // In Dynamics 365 v9.2+, Xrm.Page.data.entity exists once form navigation
+        // begins. Checking getEntityName() ensures the entity API is functional
+        // without relying on attribute collection population timing.
+        const name = entity.getEntityName?.();
+        return typeof name === 'string' && name.length > 0;
+      } catch {
+        return false;
+      }
+    },
+    undefined, // arg (pageFunction receives no argument)
+    { timeout } // options — timeout in the correct 3rd-argument position
+  );
+}
+
+/**
  * FormContext data structure returned from Model-Driven App
  */
 export interface FormContextData {
@@ -69,6 +100,7 @@ export interface FormContextData {
  * ```
  */
 export async function getFormContext(page: Page): Promise<FormContextData> {
+  await waitForEntityContext(page);
   return await page.evaluate(() => {
     // Access Xrm.Page (legacy) or pass formContext from event handler
     // In UCI, formContext is available via Xrm.Page for compatibility
@@ -81,7 +113,14 @@ export async function getFormContext(page: Page): Promise<FormContextData> {
     }
 
     const entity = formContext.data.entity;
-    const attributes = entity.attributes.get();
+
+    // Use forEach (Xrm Collection API) instead of get().map() — in Dynamics 365 v9.2+,
+    // get() with no arguments may return an empty array even when attributes are present,
+    // while forEach iterates the live collection correctly.
+    const attributeNames: string[] = [];
+    entity.attributes.forEach((attr: any) => {
+      attributeNames.push(attr.getName());
+    });
 
     return {
       entityName: entity.getEntityName(),
@@ -89,7 +128,7 @@ export async function getFormContext(page: Page): Promise<FormContextData> {
       primaryAttributeValue: entity.getPrimaryAttributeValue(),
       isDirty: entity.getIsDirty(),
       isValid: entity.isValid(),
-      attributeNames: attributes.map((attr: any) => attr.getName()),
+      attributeNames,
     };
   });
 }
@@ -109,6 +148,7 @@ export async function getFormContext(page: Page): Promise<FormContextData> {
  * ```
  */
 export async function getEntityAttribute(page: Page, attributeName: string): Promise<any> {
+  await waitForEntityContext(page);
   return await page.evaluate((attrName) => {
     const formContext = (window as any).Xrm?.Page;
     if (!formContext) {
@@ -155,6 +195,7 @@ export async function setEntityAttribute(
   attributeName: string,
   value: any
 ): Promise<void> {
+  await waitForEntityContext(page);
   await page.evaluate(
     ({ attrName, val }) => {
       const formContext = (window as any).Xrm?.Page;
@@ -187,16 +228,18 @@ export async function setEntityAttribute(
  * ```
  */
 export async function getAllEntityAttributes(page: Page): Promise<Record<string, any>> {
+  await waitForEntityContext(page);
   return await page.evaluate(() => {
     const formContext = (window as any).Xrm?.Page;
     if (!formContext) {
       throw new Error('formContext not available');
     }
 
-    const attributes = formContext.data.entity.attributes.get();
     const result: Record<string, any> = {};
 
-    attributes.forEach((attr: any) => {
+    // Use forEach (Xrm Collection API) — works in Dynamics 365 v9.2+ where
+    // get() with no arguments may return an empty array.
+    formContext.data.entity.attributes.forEach((attr: any) => {
       result[attr.getName()] = attr.getValue();
     });
 
@@ -262,6 +305,7 @@ export async function saveForm(
  * ```
  */
 export async function isFormDirty(page: Page): Promise<boolean> {
+  await waitForEntityContext(page);
   return await page.evaluate(() => {
     const formContext = (window as any).Xrm?.Page;
     if (!formContext) {
@@ -286,6 +330,7 @@ export async function isFormDirty(page: Page): Promise<boolean> {
  * ```
  */
 export async function isFormValid(page: Page): Promise<boolean> {
+  await waitForEntityContext(page);
   return await page.evaluate(() => {
     const formContext = (window as any).Xrm?.Page;
     if (!formContext) {

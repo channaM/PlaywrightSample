@@ -198,9 +198,9 @@ export class GridComponent {
    * @returns Number of data rows
    */
   async getRowCount(): Promise<number> {
-    const rows = this.page.locator(this.gridLocators.Row);
-    const count = await rows.count();
-    return count - 1; // Subtract header row
+    // Count only data rows (those with a row-index attribute); header rows have no row-index.
+    const dataRows = this.page.locator('[role="row"][row-index]');
+    return await dataRows.count();
   }
 
   /**
@@ -305,11 +305,13 @@ export class GridComponent {
    * @param keyword - The keyword to search for
    */
   async filterByKeyword(keyword: string): Promise<void> {
-    // Find the filter by keyword search box
+    // Find the filter by keyword search box.
+    // data-id="quickFind-text-editor" is the stable UCI identifier; aria-label / placeholder
+    // variants cover older versions.
     const searchBox = this.page.locator(
-      'input[aria-label*="Filter by keyword"], input[placeholder*="Filter by keyword"]'
+      'input[data-id="quickFind-text-editor"], input[aria-label*="Filter by keyword"], input[placeholder*="Filter by keyword"]'
     );
-    await searchBox.waitFor({ state: 'visible', timeout: 10000 });
+    await searchBox.waitFor({ state: 'visible', timeout: 30000 });
 
     // Clear any existing search text
     await searchBox.clear();

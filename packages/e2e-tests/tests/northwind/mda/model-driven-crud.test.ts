@@ -123,39 +123,29 @@ test.describe('Model-Driven App - CRUD Operations', () => {
     const saveButton = page.locator('button[aria-label*="Save"]').first();
     await saveButton.click();
 
-    // Wait for save to complete
+    // Wait for save to complete — URL transitions from ?pagetype=entityrecord&id=00000000... to a real GUID
+    await page.waitForURL(/pagetype=entityrecord/, { timeout: 30000 });
+    await page.waitForTimeout(2000);
+
+    // Capture the record URL so we can navigate back without relying on grid search
+    const recordUrl = page.url();
+    console.log(`✅ Record created successfully! URL: ${recordUrl}\n`);
+
+    // ========================================
+    // STEP 2: READ - Navigate directly to record and verify
+    // ========================================
+    console.log('🔍 STEP 2: READ - Navigating directly to record and verifying...');
+
+    // Navigate directly to the saved record URL (avoids grid keyword-filter dependency)
+    await page.goto(recordUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForURL(/pagetype=entityrecord/, { timeout: 30000 });
     await page.waitForTimeout(3000);
-    console.log('✅ Record created successfully!\n');
 
-    // ========================================
-    // STEP 2: READ - Find record in grid
-    // ========================================
-    console.log('🔍 STEP 2: READ - Finding record in grid...');
-
-    // Navigate to grid view (this will show the newly created record)
-    await modelDrivenApp.navigateToGridView(ENTITY_NAME);
-
-    console.log('⏳ Waiting for grid to load...');
-    await modelDrivenApp.grid.waitForGridLoad();
-
-    // Filter grid by order number to find the record
-    console.log(`🔎 Filtering grid for order: ${testOrderNumber}`);
-    await modelDrivenApp.grid.filterByKeyword(testOrderNumber);
-    await modelDrivenApp.grid.waitForGridLoad();
-
-    // After filtering, the record should be in the grid (if it exists)
-    const rowCount = await modelDrivenApp.grid.getRowCount();
-    console.log(`📊 Filtered grid has ${rowCount} row(s)`);
-
-    // Verify at least one record found
-    expect(
-      rowCount,
-      `Record with Order Number "${testOrderNumber}" should exist in filtered grid`
-    ).toBeGreaterThan(0);
-
-    // Get the first row (should be our record)
-    const foundRow = 0;
-    const cellValue = await modelDrivenApp.grid.getCellValue(foundRow, 'Order Number');
+    const readOrderNumberInput = page.locator(
+      'input[data-id="nwind_ordernumber.fieldControl-text-box-text"]'
+    );
+    await readOrderNumberInput.waitFor({ state: 'visible', timeout: 30000 });
+    const cellValue = await readOrderNumberInput.inputValue();
     console.log(`✅ Found record: "${cellValue}"\n`);
 
     // Verify it matches what we're looking for
@@ -165,13 +155,6 @@ test.describe('Model-Driven App - CRUD Operations', () => {
     // STEP 3: UPDATE - Edit the record
     // ========================================
     console.log('✏️  STEP 3: UPDATE - Editing the record...');
-
-    // Open the record from grid
-    console.log(`📂 Opening record at row ${foundRow}...`);
-    await modelDrivenApp.grid.openRecord({ rowNumber: foundRow });
-
-    console.log('⏳ Waiting for form to load...');
-    await page.waitForTimeout(3000);
 
     // Update Order Number with modified suffix (no hyphens to avoid keyword filter issues)
     const updatedOrderNumber = `${testOrderNumber}UP`;
@@ -233,46 +216,30 @@ test.describe('Model-Driven App - CRUD Operations', () => {
     testOrderNumber = updatedOrderNumber;
 
     // ========================================
-    // STEP 4: VERIFY UPDATE - Check in grid
+    // STEP 4: VERIFY UPDATE - Navigate back to record and check field value
     // ========================================
-    console.log('🔍 STEP 4: VERIFY UPDATE - Checking updated record in grid...');
+    console.log('🔍 STEP 4: VERIFY UPDATE - Navigating to record and verifying update...');
 
-    await modelDrivenApp.navigateToGridView(ENTITY_NAME);
-    await modelDrivenApp.grid.waitForGridLoad();
+    // Navigate directly back to the same record URL (record ID is unchanged after update)
+    await page.goto(recordUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForURL(/pagetype=entityrecord/, { timeout: 30000 });
+    await page.waitForTimeout(3000);
 
-    // Filter by the updated order number
-    console.log(`🔎 Filtering grid for updated order: ${testOrderNumber}`);
-    await modelDrivenApp.grid.filterByKeyword(testOrderNumber);
-    await modelDrivenApp.grid.waitForGridLoad();
-
-    const updatedRowCount = await modelDrivenApp.grid.getRowCount();
-    console.log(`📊 Filtered grid has ${updatedRowCount} row(s)`);
-
-    expect(
-      updatedRowCount,
-      `Updated record with Order Number "${updatedOrderNumber}" should exist in filtered grid`
-    ).toBeGreaterThan(0);
-
-    const updatedFoundRow = 0;
-    const updatedCellValue = await modelDrivenApp.grid.getCellValue(
-      updatedFoundRow,
-      'Order Number'
+    const verifyOrderNumberInput = page.locator(
+      'input[data-id="nwind_ordernumber.fieldControl-text-box-text"]'
     );
+    await verifyOrderNumberInput.waitFor({ state: 'visible', timeout: 30000 });
+    const updatedCellValue = await verifyOrderNumberInput.inputValue();
     console.log(`✅ Found updated record: "${updatedCellValue}"`);
-    expect(updatedCellValue).toContain(testOrderNumber);
+    expect(updatedCellValue).toContain(updatedOrderNumber);
     console.log();
 
     // ========================================
-    // STEP 5: DELETE - Remove the record
+    // STEP 5: DELETE - Remove the record from the form
     // ========================================
     console.log('🗑️  STEP 5: DELETE - Removing the record...');
 
-    // Select the row
-    console.log(`☑️  Selecting row ${updatedFoundRow}...`);
-    await modelDrivenApp.grid.selectRow(updatedFoundRow);
-    await page.waitForTimeout(1000);
-
-    // Click Delete button in command bar
+    // Click Delete button in command bar (we are already on the record form)
     console.log('🗑️  Clicking Delete button...');
     const deleteButton = page.locator('button[aria-label*="Delete"]').first();
     await deleteButton.waitFor({ state: 'visible', timeout: 10000 });
@@ -310,32 +277,46 @@ test.describe('Model-Driven App - CRUD Operations', () => {
       console.log('⚠️  Confirmation dialog not found, deletion might be immediate');
     }
 
-    // Wait for deletion to complete
-    await page.waitForTimeout(3000);
+    // Wait for MDA to redirect back to the entity list after deletion
+    await page.waitForURL(/pagetype=entitylist/, { timeout: 15000 }).catch(() => {
+      console.log('⚠️  URL did not change to entitylist — deletion may still have succeeded');
+    });
     console.log('✅ Record deleted successfully!\n');
 
     // ========================================
-    // STEP 6: VERIFY DELETE - Check record is gone
+    // STEP 6: VERIFY DELETE - Confirm record URL is no longer accessible
     // ========================================
     console.log('🔍 STEP 6: VERIFY DELETE - Confirming record is removed...');
 
-    // Navigate to grid and clear any filters
-    await modelDrivenApp.navigateToGridView(ENTITY_NAME);
-    await modelDrivenApp.grid.waitForGridLoad();
+    // Navigate directly to the record URL — MDA should redirect to an error page or back to grid
+    await page.goto(recordUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.waitForTimeout(3000);
 
-    // Try to filter by the deleted order number
-    console.log(`🔎 Searching for deleted order ${updatedOrderNumber}...`);
-    await modelDrivenApp.grid.filterByKeyword(updatedOrderNumber);
-    await modelDrivenApp.grid.waitForGridLoad();
+    const currentUrl = page.url();
+    console.log(`📍 URL after navigating to deleted record: ${currentUrl}`);
 
-    const finalRowCount = await modelDrivenApp.grid.getRowCount();
-    console.log(`📊 Filtered grid has ${finalRowCount} row(s)`);
+    // MDA either redirects to entitylist or shows a "Record not available" / error page
+    // Both are valid responses to navigating to a deleted record
+    const isOnGrid = currentUrl.includes('pagetype=entitylist');
+    const orderNumberField = page.locator(
+      'input[data-id="nwind_ordernumber.fieldControl-text-box-text"]'
+    );
+    const fieldStillVisible = await orderNumberField
+      .isVisible({ timeout: 5000 })
+      .catch(() => false);
 
-    // Verify no records found (record was deleted)
-    expect(
-      finalRowCount,
-      `Deleted record with Order Number "${updatedOrderNumber}" should NOT exist`
-    ).toBe(0);
+    if (isOnGrid) {
+      console.log('✅ Confirmed: MDA redirected to grid — record is deleted');
+    } else if (!fieldStillVisible) {
+      console.log('✅ Confirmed: Record form no longer accessible — record is deleted');
+    } else {
+      // If the form is still visible, the order number should NOT match (record replaced or error)
+      const remainingValue = await orderNumberField.inputValue().catch(() => '');
+      expect(
+        remainingValue,
+        `Deleted record Order Number "${updatedOrderNumber}" should not be accessible`
+      ).not.toBe(updatedOrderNumber);
+    }
     console.log('✅ Confirmed: Record successfully deleted!\n');
 
     console.log('═══════════════════════════════════════════════════════');

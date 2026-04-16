@@ -113,8 +113,9 @@ test.describe('Model-Driven App - Direct URL Navigation', () => {
       timeout: 60000,
     });
 
-    // Wait for page to settle
+    // Wait for page to settle, then explicitly wait for the grid to load its data rows
     await modelDrivenApp.page.waitForTimeout(5000);
+    await modelDrivenApp.grid.waitForGridLoad();
 
     // Verify grid loaded by getting row count
     const rowCount = await modelDrivenApp.grid.getRowCount();
@@ -158,8 +159,8 @@ test.describe('Model-Driven App - Direct URL Navigation', () => {
     await modelDrivenApp.grid.openRecord({ rowNumber: 0 });
     console.log('✅ Opened first order record');
 
-    // Step 4: Wait for form to load
-    await modelDrivenApp.page.waitForTimeout(3000);
+    // Step 4: Wait for navigation to the record form page
+    await modelDrivenApp.page.waitForURL(/pagetype=entityrecord/, { timeout: 30000 });
 
     // Step 5: Verify we're on the form page
     const currentUrl = modelDrivenApp.page.url();

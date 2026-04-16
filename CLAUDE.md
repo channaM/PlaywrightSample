@@ -336,3 +336,198 @@ npx playwright show-report            # Open last HTML report
 | MDA tests fail with cert error                           | Cert path wrong or missing                           | Check `MS_AUTH_LOCAL_FILE_PATH` and `MS_AUTH_CERTIFICATE_PASSWORD`    |
 | Canvas app stuck loading                                 | App takes 10–30s to initialize                       | Already handled in `beforeEach`; increase `waitFor` timeout if needed |
 | Gen UX tests time out (120s+)                            | AI generation is slow by design                      | This is expected — do not reduce `timeout` below 120s                 |
+| form-context tests time out (`Timeout 60000ms exceeded`) | `page.waitForFunction` arg placement bug             | See **Known Flakiness Patterns** section below                        |
+| `AccountsCustomPage` not found in sidebar                | Custom page not deployed to environment              | Deploy the Northwind AccountsCustomPage via the MDA app designer      |
+
+---
+
+## Known Flakiness Patterns and Anti-Patterns
+
+This section documents recurring test instability root causes found in this repo.
+**Read this before modifying any test or toolkit file.**
+
+### 1. `page.waitForFunction` — Options Must Be the Third Argument
+
+**Anti-pattern (broken — timeout is silently ignored):**
+
+```typescript
+await page.waitForFunction(() => { ... }, { timeout: 30000 });
+//                                         ↑ treated as 'arg', NOT options
+```
+
+**Correct pattern:**
+
+```typescript
+await page.waitForFunction(() => { ... }, undefined, { timeout: 30000 });
+//                                         ↑ arg      ↑ options (3rd position)
+```
+
+Playwright's signature is `page.waitForFunction(fn, arg, options)`. Passing `{ timeout }` in the
+second (arg) position means Playwright uses the page's default timeout instead. This is silent and
+very hard to diagnose. Always pass `undefined` as `arg` when the function needs no argument.
+
+> **File affected:** `packages/power-platform-playwright-toolkit/src/components/model-driven/form.context.ts`
+
+---
+
+### 2. Xrm Collection API vs Plain Arrays (Dynamics 365 v9.2+)
+
+`Xrm.Page.data.entity.attributes` is an **Xrm Collection**, not a plain JS array.
+
+| API                             | Behaviour in D365 v9.2+                                     |
+| ------------------------------- | ----------------------------------------------------------- |
+| `entity.attributes.get()`       | Returns **empty array** — do NOT use to enumerate all attrs |
+| `entity.attributes.getLength()` | Returns **0** via the `Xrm.Page` legacy shim                |
+| `Array.isArray(attrs)`          | Returns `false` — Xrm Collections are not plain arrays      |
+| `entity.attributes.forEach(cb)` | **Works** — iterates the live collection correctly          |
+| `entity.attributes.get(name)`   | **Works** — direct name lookup always resolves              |
+| `entity.getEntityName()`        | **Works** — use this as the "form is ready" readiness check |
+
+**Rule:** When enumerating form attributes, use `forEach()`. When checking form readiness, poll
+`entity.getEntityName()` returning a non-empty string, not attribute count.
+
+> **File affected:** `packages/power-platform-playwright-toolkit/src/components/model-driven/form.context.ts`
+
+---
+
+### 3. MDA Grid Row Count — Use `row-index` Attribute
+
+The MDA grid uses **ag-Grid**. All rows have `role="row"`, but only data rows carry a `row-index`
+attribute. Header rows do not.
+
+**Anti-pattern (returns -1 when grid is empty):**
+
+```typescript
+const count = await this.page.locator('[role="row"]').count();
+return count - 1; // ← subtracts 1 header row, gives -1 on empty grid
+```
+
+**Correct pattern:**
+
+```typescript
+return await this.page.locator('[role="row"][row-index]').count();
+// Only counts data rows — returns 0 on empty grid, never negative
+```
+
+> **File affected:** `packages/power-platform-playwright-toolkit/src/components/model-driven/grid.component.ts`
+
+---
+
+### 4. MDA Navigation — Wait for URL, Not Timeout
+
+After clicking a record link or navigating between views, use `waitForURL` not `waitForTimeout`.
+
+**Anti-pattern (flaky — fixed wait may expire before navigation completes):**
+
+```typescript
+await modelDrivenApp.grid.openRecord({ rowNumber: 0 });
+await page.waitForTimeout(3000); // ← arbitrary, can be too short
+```
+
+**Correct pattern:**
+
+```typescript
+await modelDrivenApp.grid.openRecord({ rowNumber: 0 });
+await page.waitForURL(/pagetype=entityrecord/, { timeout: 30000 });
+```
+
+---
+
+### 5. MDA Sidebar Selectors — Use Multi-Selector Fallback
+
+MDA renders sidebar navigation items differently across versions (`[role="presentation"][title]` vs
+`<a title>` vs `<a aria-label>`). Always use a combined selector:
+
+```typescript
+page
+  .locator(`[role="presentation"][title="${name}"], a[title="${name}"], a[aria-label="${name}"]`)
+  .first();
+```
+
+---
+
+### 6. Power Apps Studio Data Source Dialog — Search Before Select
+
+In Power Apps Studio v3+, the "Start from data" button opens a **"Select a data source"** dialog
+with a search box — not the old `.ms-Callout-main` callout flyout.
+
+**Pattern:**
+
+```typescript
+// 1. Click "Start from data"
+// 2. Wait for search box in the dialog
+const searchInput = studioFrame.locator('input[placeholder="Search"]');
+await searchInput.waitFor({ state: 'visible', timeout: 30000 });
+// 3. Type to filter
+await searchInput.fill(dataSourceName);
+await page.waitForTimeout(1000);
+// 4. Click the filtered result
+await studioFrame
+  .locator(
+    `[data-item-id*="datasourceItem"] [aria-label="${dataSourceName}"], [role="option"][aria-label="${dataSourceName}"]`
+  )
+  .first()
+  .click();
+```
+
+> **File affected:** `packages/e2e-tests/pages/northwind/CustomPage.page.ts`
+
+---
+
+### 7. Use `findWithFallback` and `findWithFallbackRole` for Versioned UI
+
+When a selector might differ across Power Platform versions, use the toolkit utilities:
+
+```typescript
+import { findWithFallback, findWithFallbackRole } from 'power-platform-playwright-toolkit';
+
+// Try multiple selectors — returns the first visible one
+const btn = await findWithFallback(
+  page,
+  [
+    '#add-new-page-in-canvas-placeholder', // v3 Studio
+    '#add-new-page-in-command-bar', // v2 Studio
+  ],
+  { timeout: 5000 }
+);
+await btn.click();
+
+// Role-based fallback
+const link = await findWithFallbackRole(page, [
+  { role: 'menuitem', name: 'Apps' },
+  { role: 'link', name: 'Apps' },
+]);
+await link.click();
+```
+
+These utilities probe each selector with a 1-second timeout and silently move to the next. Use them
+whenever a UI element has been renamed or restructured across versions.
+
+> **Source:** `packages/power-platform-playwright-toolkit/src/utils/locator-helpers.ts`
+
+---
+
+### 8. Gen UX `addNewPage()` — 3-Step Flow
+
+The "Describe a new page" flow in Power Apps Studio requires three sequential clicks:
+
+1. `#add-new-page-in-canvas-placeholder` (the `+` placeholder)
+2. The "Generative page" option button
+3. The "Describe a new page" text link
+
+If any step fails with a timeout, check whether the Studio UI renamed a step. Use the trace viewer
+(`npx playwright show-trace`) to inspect which selector was not found.
+
+---
+
+### 9. Rebuild After Any Toolkit Change
+
+The `e2e-tests` package imports the **compiled** toolkit (`dist/`). Editing TypeScript source files
+in `packages/power-platform-playwright-toolkit/src/` has NO effect on tests until rebuilt.
+
+```bash
+# After any change to the toolkit source:
+rush build --to power-platform-playwright-toolkit
+```
+
+Forgetting this is the most common source of "my fix didn't work" confusion.

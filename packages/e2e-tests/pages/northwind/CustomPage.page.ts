@@ -17,9 +17,16 @@ export const canvasAppSelector = {
   studioFrame: 'iframe[data-test-id="iframe-powerapps-studio"]',
   powerAppsLogo: '[id="spl-powerapps"] [class="spl-powerapps-logo"]',
   startFromData: '#start-from-data-button',
-  callout: '.ms-Callout-main',
+  // Power Apps Studio v3 replaced the callout with a full "Select a data source" dialog/panel.
+  // Search box in that dialog:
+  dataSourceSearch: 'input[placeholder="Search"]',
+  // Data source item — tries the stable data-item-id attribute first (still present after search),
+  // then falls back to aria-label/role patterns used in newer Studio builds.
   dataSourceItemList: (option: string) =>
-    `[data-item-id*="datasourceItem"] [aria-label="${option}"]`,
+    `[data-item-id*="datasourceItem"] [aria-label="${option}"], ` +
+    `[role="option"][aria-label="${option}"], ` +
+    `[aria-label="${option}"][tabindex], ` +
+    `button[title="${option}"]`,
   successMessageText: '[class*="success ms-MessageBar"]',
   spinnerProgressbar: '[role="progressbar"]',
   previewButton: '#commandBar_preview',
@@ -99,12 +106,25 @@ export class CustomPage {
     console.log('[CustomPage] Clicking "Start from data"');
     await clickSelector(this.studioFrame, canvasAppSelector.startFromData);
 
+    // Power Apps Studio v3 replaced the Callout flyout with a "Select a data source"
+    // dialog/panel that has a search box. Type the data source name to filter the list.
+    console.log('[CustomPage] Waiting for data source search panel to appear');
+    const searchInput = this.studioFrame.locator(canvasAppSelector.dataSourceSearch);
+    await searchInput.waitFor({ state: 'visible', timeout: 30000 });
+
+    console.log(`[CustomPage] Searching for data source: "${dataSource}"`);
+    await searchInput.fill(dataSource);
+    // Brief pause for the search results to filter
+    await this.page.waitForTimeout(1000);
+
     console.log(`[CustomPage] Waiting for data source option: "${dataSource}"`);
-    const callout = this.studioFrame.locator(canvasAppSelector.callout).last();
-    await waitForSelectorToEnable(callout, canvasAppSelector.dataSourceItemList(dataSource));
+    await waitForSelectorToEnable(
+      this.studioFrame,
+      canvasAppSelector.dataSourceItemList(dataSource)
+    );
 
     console.log(`[CustomPage] Selecting data source: "${dataSource}"`);
-    await clickSelector(callout, canvasAppSelector.dataSourceItemList(dataSource));
+    await clickSelector(this.studioFrame, canvasAppSelector.dataSourceItemList(dataSource));
 
     console.log('[CustomPage] Waiting for spinner to disappear after data source selection');
     await waitForSelectorToDisable(this.studioFrame, canvasAppSelector.spinnerProgressbar);
