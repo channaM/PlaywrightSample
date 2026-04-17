@@ -7,11 +7,10 @@ completions, and chat answers are accurate for this codebase.
 
 ## What This Repository Is
 
-A **Rush monorepo** with three packages:
+A **Rush monorepo** with two packages:
 
 - `packages/power-platform-playwright-toolkit/` — Core TypeScript library, published to npm as `power-platform-playwright-toolkit`. Contains the Page Object Model, authentication helpers, locators, waiters, and utilities.
 - `packages/e2e-tests/` — Sample Playwright tests targeting Canvas Apps, Model-Driven Apps, and Gen UX in a real Power Platform environment.
-- `packages/docs/` — Nextra/Next.js documentation site.
 
 ---
 
