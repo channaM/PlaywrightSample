@@ -72,7 +72,7 @@ import {
   ModelDrivenAppPage,
 } from 'power-platform-playwright-toolkit';
 
-test.describe('Model-Driven App - Direct URL Navigation', () => {
+test.describe.serial('Model-Driven App - Direct URL Navigation', () => {
   let appProvider: AppProvider;
   let modelDrivenApp: ModelDrivenAppPage;
 

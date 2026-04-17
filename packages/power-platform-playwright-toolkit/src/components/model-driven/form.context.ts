@@ -318,6 +318,10 @@ export async function setEntityAttribute(
       }
 
       attribute.setValue(val);
+      // fireOnChange() triggers the attribute's onChange handlers and marks the
+      // form as dirty. In D365 v9.2+, setValue() alone may not dirty the form
+      // for all attribute types — fireOnChange() is required to commit the change.
+      attribute.fireOnChange();
     },
     { attrName: attributeName, val: value }
   );

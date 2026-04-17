@@ -21,6 +21,7 @@ import {
   AppLaunchMode,
   ModelDrivenAppPage,
   generateUniqueOrderNumber,
+  getEntityAttribute,
 } from 'power-platform-playwright-toolkit';
 
 const MODEL_DRIVEN_APP_URL = process.env.MODEL_DRIVEN_APP_URL || process.env.BASE_APP_URL;
@@ -35,7 +36,7 @@ if (!MODEL_DRIVEN_APP_URL) {
   );
 }
 
-test.describe('Model-Driven App - CRUD Operations', () => {
+test.describe.serial('Model-Driven App - CRUD Operations', () => {
   let appProvider: AppProvider;
   let modelDrivenApp: ModelDrivenAppPage;
   let testOrderNumber: string;
@@ -225,11 +226,10 @@ test.describe('Model-Driven App - CRUD Operations', () => {
     await page.waitForURL(/pagetype=entityrecord/, { timeout: 30000 });
     await page.waitForTimeout(3000);
 
-    const verifyOrderNumberInput = page.locator(
-      'input[data-id="nwind_ordernumber.fieldControl-text-box-text"]'
-    );
-    await verifyOrderNumberInput.waitFor({ state: 'visible', timeout: 30000 });
-    const updatedCellValue = await verifyOrderNumberInput.inputValue();
+    // Read via Xrm API — works in both view mode and edit mode, avoiding a
+    // dependency on the input element being visible (which requires edit mode
+    // and can be absent when D365 renders the form in read/view mode after a save).
+    const updatedCellValue = await getEntityAttribute(page, 'nwind_ordernumber');
     console.log(`✅ Found updated record: "${updatedCellValue}"`);
     expect(updatedCellValue).toContain(updatedOrderNumber);
     console.log();
