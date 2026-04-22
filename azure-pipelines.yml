@@ -1,0 +1,388 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Power Platform Playwright E2E Tests — Azure DevOps Pipeline
+#
+# BEFORE YOU USE:
+#   1. Replace every "# CHANGE THIS" value with your own.
+#   2. Add a pipeline secret variable named MS_USER_PASSWORD (or configure
+#      certificate auth — see the cert auth section below).
+#   3. Set the agent pool (default: ubuntu-latest / Microsoft-hosted).
+#   4. Import this file in Azure DevOps:
+#        Pipelines → New pipeline → Azure Repos Git → select repo → Existing YAML file
+#
+# AUTH OPTIONS (choose one):
+#   A) Password (simplest for getting started):
+#        Set MS_AUTH_CREDENTIAL_TYPE: password
+#        Add pipeline secret: MS_USER_PASSWORD = <test account password>
+#   B) Certificate (recommended for production CI):
+#        Store a base64-encoded PFX in Azure Key Vault.
+#        Uncomment the AzureKeyVault task and cert-decode step below.
+#        Set MS_AUTH_CREDENTIAL_TYPE: certificate
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: pp-playwright-e2e-$(Rev:rrr)
+
+# Not triggered on push — tests require a live Power Platform environment.
+trigger: none
+pr: none
+
+schedules:
+  - cron: '0 6 * * 1-5'
+    displayName: Daily E2E (weekdays 06:00 UTC)
+    branches:
+      include:
+        - main
+    always: true
+
+variables:
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+  - name: nodeVersion
+    value: '20.x'
+  - name: testResultsDir
+    value: '$(Build.Repository.LocalPath)'
+
+  # ── Authentication ──────────────────────────────────────────────────────────
+  # Test account email — used to derive the storage state file path.
+  - name: MS_AUTH_EMAIL
+    value: 'your-test-user@yourdomain.com'    # CHANGE THIS
+
+  # Use 'password' for simplicity; 'certificate' for production CI.
+  - name: MS_AUTH_CREDENTIAL_TYPE
+    value: 'password'
+
+  # For password auth: reads the password from the MS_USER_PASSWORD env var.
+  # Add MS_USER_PASSWORD as a pipeline secret (Pipelines → Edit → Variables).
+  - name: MS_AUTH_CREDENTIAL_PROVIDER
+    value: 'environment'
+  - name: MS_AUTH_ENV_VARIABLE_NAME
+    value: 'MS_USER_PASSWORD'
+
+  - name: MS_AUTH_HEADLESS
+    value: 'true'
+  - name: MS_AUTH_WAIT_FOR_MSAL_TOKENS
+    value: 'true'
+  - name: MS_AUTH_MSAL_TOKEN_TIMEOUT
+    value: '86400000'
+  - name: MS_AUTH_STORAGE_STATE_EXPIRATION
+    value: '24'
+  - name: AUTH_ENDPOINT
+    value: 'https://login.microsoftonline.com'
+
+  # Your Azure AD / Entra tenant — used by the auth scripts.
+  - name: AZURE_TENANT_ID
+    value: 'yourtenant.onmicrosoft.com'        # CHANGE THIS
+
+  # ── Power Apps Environment ───────────────────────────────────────────────────
+  # Maker Portal base URL (use make.preview.powerapps.com for pre-release features).
+  - name: POWER_APPS_BASE_URL
+    value: 'https://make.powerapps.com'
+
+  # Environment GUID — from the Maker Portal URL:
+  #   make.powerapps.com/environments/<GUID>/home
+  # Default environment example: Default-<tenantId>
+  - name: POWER_APPS_ENVIRONMENT_ID
+    value: 'Default-00000000-0000-0000-0000-000000000000'  # CHANGE THIS
+
+  # Full URL of your Model-Driven App including ?appid=
+  # Open the MDA in your browser and copy the URL.
+  - name: MODEL_DRIVEN_APP_URL
+    value: 'https://your-org.crm.dynamics.com/main.aspx?appid=00000000-0000-0000-0000-000000000000'  # CHANGE THIS
+
+  # Canvas App IDs — Maker Portal → select app → Details → App ID
+  - name: CANVAS_APP_ID
+    value: '00000000-0000-0000-0000-000000000000'          # CHANGE THIS
+  - name: CANVAS_APP_TENANT_ID
+    value: '00000000-0000-0000-0000-000000000000'          # CHANGE THIS
+
+stages:
+  - stage: E2ETests
+    displayName: 'E2E Playwright Tests'
+    jobs:
+
+      # ───────────────────────────────────────────────────────────────────────
+      # Job 1: Canvas App Tests
+      # ───────────────────────────────────────────────────────────────────────
+      - job: NorthwindCanvasTests
+        displayName: 'Northwind Canvas App Tests'
+        timeoutInMinutes: 60
+        pool:
+          vmImage: 'ubuntu-latest'   # CHANGE THIS to your self-hosted pool name if needed
+          # Example self-hosted pool:
+          # name: 'My-Agent-Pool'
+
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Use Node.js $(nodeVersion)'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: |
+              corepack enable
+              corepack prepare pnpm@10.28.1 --activate
+            displayName: 'Enable corepack + pnpm'
+
+          - script: npm install -g @microsoft/rush
+            displayName: 'Install Rush'
+
+          - script: node common/scripts/install-run-rush.js install --bypass-policy
+            displayName: 'Rush install (all packages)'
+
+          - script: node common/scripts/install-run-rush.js build --to power-platform-playwright-toolkit
+            displayName: 'Rush build (toolkit)'
+
+          - script: npx playwright install chromium --with-deps
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            failOnStderr: false
+            timeoutInMinutes: 15
+            displayName: 'Install Playwright browser (chromium)'
+
+          # ── Certificate auth (uncomment to use instead of password) ─────────
+          # Prerequisites:
+          #   - An Azure Key Vault containing your test user cert as a base64 PFX secret.
+          #   - A service connection (Azure Resource Manager) with Key Vault Secrets User.
+          #
+          # - task: AzureKeyVault@2
+          #   displayName: 'Fetch test cert from Key Vault'
+          #   inputs:
+          #     azureSubscription: 'YOUR-SERVICE-CONNECTION-NAME'   # CHANGE THIS
+          #     KeyVaultName: 'your-keyvault-name'                   # CHANGE THIS
+          #     SecretsFilter: 'your-cert-secret-name'               # CHANGE THIS
+          #     RunAsPreJob: false
+          #
+          # - pwsh: |
+          #     $base64   = "$(your-cert-secret-name)"               # CHANGE THIS
+          #     $certDir  = "$(Agent.TempDirectory)/certs"
+          #     $certPath = "$certDir/testuser.pfx"
+          #     New-Item -ItemType Directory -Force -Path $certDir | Out-Null
+          #     [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($base64))
+          #     Write-Host "##vso[task.setvariable variable=certFilePath]$certPath"
+          #   displayName: 'Decode cert to disk'
+
+          - script: pnpm run auth:headful
+            displayName: 'Authenticate — Canvas / Maker Portal'
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            env:
+              CI: 'true'
+              MS_AUTH_EMAIL: $(MS_AUTH_EMAIL)
+              MS_AUTH_CREDENTIAL_TYPE: $(MS_AUTH_CREDENTIAL_TYPE)
+              MS_AUTH_CREDENTIAL_PROVIDER: $(MS_AUTH_CREDENTIAL_PROVIDER)
+              MS_AUTH_ENV_VARIABLE_NAME: $(MS_AUTH_ENV_VARIABLE_NAME)
+              MS_USER_PASSWORD: $(MS_USER_PASSWORD)   # pipeline secret variable
+              # For cert auth, replace the two lines above with:
+              # MS_AUTH_CREDENTIAL_TYPE: certificate
+              # MS_AUTH_CREDENTIAL_PROVIDER: local-file
+              # MS_AUTH_LOCAL_FILE_PATH: $(certFilePath)
+              AUTH_ENDPOINT: $(AUTH_ENDPOINT)
+
+          - bash: npx playwright test --project=canvas-app
+            displayName: 'Run Canvas App Tests'
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            env:
+              CI: 'true'
+              MS_AUTH_EMAIL: $(MS_AUTH_EMAIL)
+              MS_AUTH_CREDENTIAL_TYPE: $(MS_AUTH_CREDENTIAL_TYPE)
+              MS_AUTH_CREDENTIAL_PROVIDER: $(MS_AUTH_CREDENTIAL_PROVIDER)
+              MS_AUTH_ENV_VARIABLE_NAME: $(MS_AUTH_ENV_VARIABLE_NAME)
+              MS_USER_PASSWORD: $(MS_USER_PASSWORD)
+              OUTPUT_DIRECTORY: $(testResultsDir)
+
+          - task: PublishTestResults@2
+            displayName: 'Publish test results (Canvas)'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: '$(testResultsDir)/junit-results.xml'
+              testRunTitle: 'Canvas App Tests'
+              failTaskOnFailedTests: false
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish artifacts (Canvas)'
+            condition: succeededOrFailed()
+            inputs:
+              targetPath: $(testResultsDir)/artifacts
+              artifact: TestArtifacts-Canvas
+
+      # ───────────────────────────────────────────────────────────────────────
+      # Job 2: Model-Driven App Tests
+      # Requires a separate auth state for the Dynamics 365 CRM domain.
+      # ───────────────────────────────────────────────────────────────────────
+      - job: NorthwindMDATests
+        displayName: 'Northwind Model-Driven App Tests'
+        timeoutInMinutes: 60
+        pool:
+          vmImage: 'ubuntu-latest'   # CHANGE THIS if using a self-hosted pool
+
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Use Node.js $(nodeVersion)'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: |
+              corepack enable
+              corepack prepare pnpm@10.28.1 --activate
+            displayName: 'Enable corepack + pnpm'
+
+          - script: npm install -g @microsoft/rush
+            displayName: 'Install Rush'
+
+          - script: node common/scripts/install-run-rush.js install --bypass-policy
+            displayName: 'Rush install (all packages)'
+
+          - script: node common/scripts/install-run-rush.js build --to power-platform-playwright-toolkit
+            displayName: 'Rush build (toolkit)'
+
+          - script: npx playwright install chromium --with-deps
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            failOnStderr: false
+            timeoutInMinutes: 15
+            displayName: 'Install Playwright browser (chromium)'
+
+          # (Optional) Uncomment the AzureKeyVault + cert-decode steps here for cert auth.
+
+          - script: pnpm run auth:headful
+            displayName: 'Authenticate — Canvas / Maker Portal'
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            env:
+              CI: 'true'
+              MS_AUTH_EMAIL: $(MS_AUTH_EMAIL)
+              MS_AUTH_CREDENTIAL_TYPE: $(MS_AUTH_CREDENTIAL_TYPE)
+              MS_AUTH_CREDENTIAL_PROVIDER: $(MS_AUTH_CREDENTIAL_PROVIDER)
+              MS_AUTH_ENV_VARIABLE_NAME: $(MS_AUTH_ENV_VARIABLE_NAME)
+              MS_USER_PASSWORD: $(MS_USER_PASSWORD)
+              AUTH_ENDPOINT: $(AUTH_ENDPOINT)
+
+          - script: pnpm run auth:mda:headful
+            displayName: 'Authenticate — Model-Driven App (CRM domain)'
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            env:
+              CI: 'true'
+              MS_AUTH_EMAIL: $(MS_AUTH_EMAIL)
+              MS_AUTH_CREDENTIAL_TYPE: $(MS_AUTH_CREDENTIAL_TYPE)
+              MS_AUTH_CREDENTIAL_PROVIDER: $(MS_AUTH_CREDENTIAL_PROVIDER)
+              MS_AUTH_ENV_VARIABLE_NAME: $(MS_AUTH_ENV_VARIABLE_NAME)
+              MS_USER_PASSWORD: $(MS_USER_PASSWORD)
+              AUTH_ENDPOINT: $(AUTH_ENDPOINT)
+
+          - pwsh: |
+              $email     = "$(MS_AUTH_EMAIL)"
+              $statePath = Join-Path "packages/e2e-tests" ".playwright-ms-auth" "state-mda-$email.json"
+              if (-not (Test-Path $statePath)) {
+                Write-Error "MDA auth state not found: $statePath — authentication may have failed."
+                exit 1
+              }
+              Write-Host "MDA auth state verified: $statePath"
+            displayName: 'Verify MDA auth state'
+            failOnStderr: true
+
+          - bash: npx playwright test --project=model-driven-app
+            displayName: 'Run Model-Driven App Tests'
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            env:
+              CI: 'true'
+              MS_AUTH_EMAIL: $(MS_AUTH_EMAIL)
+              MS_AUTH_CREDENTIAL_TYPE: $(MS_AUTH_CREDENTIAL_TYPE)
+              MS_AUTH_CREDENTIAL_PROVIDER: $(MS_AUTH_CREDENTIAL_PROVIDER)
+              MS_AUTH_ENV_VARIABLE_NAME: $(MS_AUTH_ENV_VARIABLE_NAME)
+              MS_USER_PASSWORD: $(MS_USER_PASSWORD)
+              OUTPUT_DIRECTORY: $(testResultsDir)
+
+          - task: PublishTestResults@2
+            displayName: 'Publish test results (MDA)'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: '$(testResultsDir)/junit-results.xml'
+              testRunTitle: 'Model-Driven App Tests'
+              failTaskOnFailedTests: false
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish artifacts (MDA)'
+            condition: succeededOrFailed()
+            inputs:
+              targetPath: $(testResultsDir)/artifacts
+              artifact: TestArtifacts-MDA
+
+      # ───────────────────────────────────────────────────────────────────────
+      # Job 3: Gen UX Tests
+      # Requires an environment with the Gen UX AI feature enabled.
+      # The POWER_APPS_ENVIRONMENT_ID for Gen UX may differ from Canvas / MDA.
+      # ───────────────────────────────────────────────────────────────────────
+      - job: GenUXTests
+        displayName: 'Gen UX Tests'
+        timeoutInMinutes: 60
+        pool:
+          vmImage: 'ubuntu-latest'   # CHANGE THIS if using a self-hosted pool
+
+        steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            displayName: 'Use Node.js $(nodeVersion)'
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: |
+              corepack enable
+              corepack prepare pnpm@10.28.1 --activate
+            displayName: 'Enable corepack + pnpm'
+
+          - script: npm install -g @microsoft/rush
+            displayName: 'Install Rush'
+
+          - script: node common/scripts/install-run-rush.js install --bypass-policy
+            displayName: 'Rush install (all packages)'
+
+          - script: node common/scripts/install-run-rush.js build --to power-platform-playwright-toolkit
+            displayName: 'Rush build (toolkit)'
+
+          - script: npx playwright install chromium --with-deps
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            failOnStderr: false
+            timeoutInMinutes: 15
+            displayName: 'Install Playwright browser (chromium)'
+
+          # (Optional) Uncomment the AzureKeyVault + cert-decode steps here for cert auth.
+
+          - script: pnpm run auth:headful
+            displayName: 'Authenticate — Canvas / Maker Portal'
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            env:
+              CI: 'true'
+              MS_AUTH_EMAIL: $(MS_AUTH_EMAIL)
+              MS_AUTH_CREDENTIAL_TYPE: $(MS_AUTH_CREDENTIAL_TYPE)
+              MS_AUTH_CREDENTIAL_PROVIDER: $(MS_AUTH_CREDENTIAL_PROVIDER)
+              MS_AUTH_ENV_VARIABLE_NAME: $(MS_AUTH_ENV_VARIABLE_NAME)
+              MS_USER_PASSWORD: $(MS_USER_PASSWORD)
+              AUTH_ENDPOINT: $(AUTH_ENDPOINT)
+
+          - bash: npx playwright test --project=gen-ux
+            displayName: 'Run Gen UX Tests'
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
+            env:
+              CI: 'true'
+              MS_AUTH_EMAIL: $(MS_AUTH_EMAIL)
+              MS_AUTH_CREDENTIAL_TYPE: $(MS_AUTH_CREDENTIAL_TYPE)
+              MS_AUTH_CREDENTIAL_PROVIDER: $(MS_AUTH_CREDENTIAL_PROVIDER)
+              MS_AUTH_ENV_VARIABLE_NAME: $(MS_AUTH_ENV_VARIABLE_NAME)
+              MS_USER_PASSWORD: $(MS_USER_PASSWORD)
+              OUTPUT_DIRECTORY: $(testResultsDir)
+
+          - task: PublishTestResults@2
+            displayName: 'Publish test results (Gen UX)'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: '$(testResultsDir)/junit-results.xml'
+              testRunTitle: 'Gen UX Tests'
+              failTaskOnFailedTests: false
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish artifacts (Gen UX)'
+            condition: succeededOrFailed()
+            inputs:
+              targetPath: $(testResultsDir)/artifacts
+              artifact: TestArtifacts-GenUX
