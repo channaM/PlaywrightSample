@@ -1,0 +1,72 @@
+testSuite:
+  testSuiteName: TC1_PJC_001
+  testSuiteDescription: ''
+  persona: User1
+  appLogicalName: capop_opexcapexapprovalappv34_ddc56
+  appId: ''
+  onTestCaseStart: |
+    = 
+  onTestCaseComplete: |
+    = 
+  onTestSuiteComplete: ""
+  networkRequestMocks: 
+  testCases:
+  - testCaseName: 'Case: Can save project'
+    testCaseDescription: ''
+    testSteps: |
+      = 
+      Select('Button1');
+      Set(autoText, "AUTO_TEST_006");
+      SetProperty('imp_ProjectNumber'.Text, autoText);
+      SetProperty('imp_ProjectName'.Text, "AUTO_NAME_002");
+      SetProperty('drp_ProjectManager'.SelectedItems, Table({'fullname':"Channa Meng",'internalemailaddress':"channa.meng.extern@semperitgroup.com",'systemuserid':"eea392d2-2ec6-f011-8544-7c1e5220b5ad"}));
+      Select('drp_ProjectManager');
+      SetProperty('drp_CapexOpex'.SelectedItems, Table({'Value':{'Id':917310001,'Value':"OPEX"}}));
+      Select('drp_CapexOpex');
+      SetProperty('drp_ProjectType'.SelectedItems, Table({'capop_projecttypeid':"566ce684-5316-f111-8343-7c1e52fc6a95",'capop_projecttypename':"Consulting"}));
+      Select('drp_ProjectType');
+      SetProperty('imp_ProjectValue'.Text, "1222");
+      SetProperty('imp_BudgetAmount'.Text, "1222");
+      SetProperty('drp_CostCenter'.SelectedItems, Table({'capop_costcenterid':"c51c92c8-1c16-f111-834e-7ced8d402bbf",'capop_costcentername':"100000000"}));
+      Select('drp_CostCenter');
+      SetProperty('imp_PSPElement'.Text, "123");
+      Select('DataCardKey25');
+      SetProperty('drp_EU_Taxonomy'.SelectedItems, Table({'Value':{'Id':true,'Value':"Yes"}}));
+      Select('drp_EU_Taxonomy');
+      SetProperty('drp_LegalEntity'.SelectedItems, Table({'capop_isvalidationskipped':{'Id':false,'Value':"No"},'capop_legalentityid':"dce6816a-430b-f111-834e-7ced8d46310a",'capop_legalentityname':"AT11"}));
+      Select('drp_LegalEntity');
+      SetProperty('drp_BusinessSemperit'.SelectedItems, Table({'capop_businesssemperitid':"5884b115-e316-f111-8342-7ced8d7712d2",'capop_name':"Belting"}));
+      Select('drp_BusinessSemperit');
+      SetProperty('drp_Department'.SelectedItems, Table({'capop_departmentid':"3426801a-430b-f111-8351-7ced8d415082",'capop_departmentname':"Infrastructure"}));
+      Select('drp_Department');
+      SetProperty('drp_ProjectAdmin'.SelectedItems, Table({'fullname':"Channa Meng",'systemuserid':"eea392d2-2ec6-f011-8544-7c1e5220b5ad"}));
+      Select('drp_ProjectAdmin');
+      SetProperty('imp_Comment'.Text, "TEST AUTOMATION");
+      SetProperty('drp_CostCenterOwner'.SelectedItems, Table({'fullname':"Channa Meng",'internalemailaddress':"channa.meng.extern@semperitgroup.com",'systemuserid':"eea392d2-2ec6-f011-8544-7c1e5220b5ad"}));
+      Select('drp_CostCenterOwner');
+      SetProperty('drp_AdditionalNominated'.SelectedItems, Table({'fullname':"Channa Meng",'internalemailaddress':"channa.meng.extern@semperitgroup.com",'systemuserid':"eea392d2-2ec6-f011-8544-7c1e5220b5ad"}));
+      Select('drp_AdditionalNominated');
+      Select('Button3');
+      Assert(IsMatch(Label1.Text,"submitted succesfully", MatchOptions.Contains));
+      Select('Button2');
+      Select('gal_projects', 1, 'Icon_View');
+      Assert(DataCardValue1.Text = autoText);
+      Select(Icon4_2);
+testSettings:
+  filePath: 
+  browserConfigurations:
+  - browser: Chromium
+    device: 
+    screenWidth: 0
+    screenHeight: 0
+  locale: en-US
+  recordVideo: true
+  headless: true
+  enablePowerFxOverlay: false
+  timeout: 30000
+environmentVariables:
+  filePath: 
+  users:
+  - personaName: User1
+    emailKey: user1Email
+    passwordKey: user1Password
