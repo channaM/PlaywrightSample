@@ -63,29 +63,21 @@ stages:
         steps:
           - checkout: self
 
-          # ── Install Power Platform Tools (pac CLI) ─────────────────────────
-          - task: PowerPlatformToolInstaller@2
-            displayName: 'Install Power Platform CLI (pac)'
+          # ── Install pac CLI via .NET global tool (no service connection needed) ──
+          - task: UseDotNet@2
+            displayName: 'Use .NET 8'
             inputs:
-              DefaultVersion: true
+              packageType: sdk
+              version: '8.x'
 
-          # ── Authenticate to Power Platform via service principal ───────────
-          # Option A — Username / Password (simplest for dev/test accounts)
-          # pac auth create is called implicitly by pac test run via env vars.
-          # No separate auth step needed when using --username / --password flags.
-
-          # Option B — Service Principal (recommended for CI/CD)
-          # Uncomment below and add clientId / clientSecret as pipeline secrets:
-          #
-          # - task: PowerPlatformWhoAmi@2
-          #   displayName: 'Authenticate — Service Principal'
-          #   inputs:
-          #     authenticationType: 'PowerPlatformSPN'
-          #     PowerPlatformSPN: 'YOUR-SERVICE-CONNECTION'  # CHANGE THIS
+          - pwsh: |
+              dotnet tool install --global Microsoft.PowerApps.CLI.Tool
+              $toolPath = "$env:USERPROFILE\.dotnet\tools"
+              Write-Host "##vso[task.prependpath]$toolPath"
+              & "$toolPath\pac.exe" --version
+            displayName: 'Install pac CLI (.NET global tool)'
 
           # ── Install Playwright / Chromium for PATE ──────────────────────────
-          # pac test run downloads its own Playwright binaries, but pre-installing
-          # ensures the correct Chromium version is available offline.
           - task: NodeTool@0
             displayName: 'Use Node.js 20.x'
             inputs:
