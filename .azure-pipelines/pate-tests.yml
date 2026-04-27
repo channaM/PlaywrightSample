@@ -1,0 +1,132 @@
+name: pate-e2e-$(Rev:rrr)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Power Apps Test Engine (PATE) — Azure DevOps Pipeline
+# Runs *.fx.yaml test suites using the Power Platform CLI (pac test run).
+# PATE uses Playwright (Chromium) internally to drive the Canvas App.
+#
+# Test file : tests/TC1_PJC_001.fx.yaml
+# App       : capop_opexcapexapprovalappv34_ddc56
+# Persona   : User1  (env vars: user1Email / user1Password)
+#
+# BEFORE USE:
+#   1. Replace every "# CHANGE THIS" value below with your own.
+#   2. Add pipeline secret variables in ADO:
+#        user1Password = <test account password>
+#      (Pipelines → Edit → Variables → + Add → tick "Keep this value secret")
+#   3. Import this file in ADO:
+#        Pipelines → New pipeline → GitHub → select repo →
+#        Existing YAML file → .azure-pipelines/pate-tests.yml
+# ─────────────────────────────────────────────────────────────────────────────
+
+trigger: none
+pr: none
+
+schedules:
+  - cron: '0 6 * * 1-5'
+    displayName: Daily PATE tests (weekdays 06:00 UTC)
+    branches:
+      include:
+        - main
+    always: true
+
+variables:
+  # ── Power Platform environment ───────────────────────────────────────────────
+  - name: POWER_APPS_ENVIRONMENT_URL
+    value: 'https://your-org.crm.dynamics.com'   # CHANGE THIS — your Dataverse URL
+  - name: POWER_APPS_ENVIRONMENT_ID
+    value: '00000000-0000-0000-0000-000000000000' # CHANGE THIS — environment GUID
+
+  # ── Tenant / Auth ─────────────────────────────────────────────────────────────
+  - name: AZURE_TENANT_ID
+    value: 'yourtenant.onmicrosoft.com'           # CHANGE THIS
+
+  # ── Test user (User1 persona defined in TC1_PJC_001.fx.yaml) ─────────────────
+  - name: user1Email
+    value: 'your-test-user@yourdomain.com'        # CHANGE THIS
+  # user1Password is added as a SECRET pipeline variable (not listed here)
+
+  # ── Test file glob ─────────────────────────────────────────────────────────────
+  - name: testPlanFile
+    value: 'tests/TC1_PJC_001.fx.yaml'
+
+stages:
+  - stage: PATETests
+    displayName: 'Power Apps Test Engine — TC1_PJC_001'
+    jobs:
+      - job: RunPATETests
+        displayName: 'Run *.fx.yaml tests (pac test run)'
+        timeoutInMinutes: 60
+        pool:
+          vmImage: 'windows-latest'   # PATE requires Windows for pac CLI
+
+        steps:
+          - checkout: self
+
+          # ── Install Power Platform Tools (pac CLI) ─────────────────────────
+          - task: PowerPlatformToolInstaller@2
+            displayName: 'Install Power Platform CLI (pac)'
+            inputs:
+              DefaultVersion: true
+
+          # ── Authenticate to Power Platform via service principal ───────────
+          # Option A — Username / Password (simplest for dev/test accounts)
+          # pac auth create is called implicitly by pac test run via env vars.
+          # No separate auth step needed when using --username / --password flags.
+
+          # Option B — Service Principal (recommended for CI/CD)
+          # Uncomment below and add clientId / clientSecret as pipeline secrets:
+          #
+          # - task: PowerPlatformWhoAmi@2
+          #   displayName: 'Authenticate — Service Principal'
+          #   inputs:
+          #     authenticationType: 'PowerPlatformSPN'
+          #     PowerPlatformSPN: 'YOUR-SERVICE-CONNECTION'  # CHANGE THIS
+
+          # ── Install Playwright / Chromium for PATE ──────────────────────────
+          # pac test run downloads its own Playwright binaries, but pre-installing
+          # ensures the correct Chromium version is available offline.
+          - task: NodeTool@0
+            displayName: 'Use Node.js 20.x'
+            inputs:
+              versionSpec: '20.x'
+
+          - script: npx playwright install chromium --with-deps
+            displayName: 'Pre-install Playwright Chromium'
+            failOnStderr: false
+            timeoutInMinutes: 15
+
+          # ── Run the fx.yaml test suite ──────────────────────────────────────
+          - script: |
+              pac test run ^
+                --test-plan-file "$(testPlanFile)" ^
+                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" ^
+                --tenant "$(AZURE_TENANT_ID)" ^
+                --username "$(user1Email)" ^
+                --password "$(user1Password)"
+            displayName: 'pac test run — TC1_PJC_001.fx.yaml'
+            workingDirectory: $(Build.SourcesDirectory)
+            env:
+              user1Email: $(user1Email)
+              user1Password: $(user1Password)   # pipeline secret
+
+          # ── Publish JUnit test results ──────────────────────────────────────
+          # pac test run writes results to: TestOutput/ by default.
+          # Adjust testResultsFiles path if your pac version writes elsewhere.
+          - task: PublishTestResults@2
+            displayName: 'Publish test results — TC1_PJC_001'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: JUnit
+              testResultsFiles: '**/TestOutput/*.xml'
+              searchFolder: $(Build.SourcesDirectory)
+              testRunTitle: 'PATE — TC1_PJC_001 Can save project'
+              failTaskOnFailedTests: true
+
+          # ── Publish test artifacts (videos, traces) ─────────────────────────
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish test artifacts — TC1_PJC_001'
+            condition: succeededOrFailed()
+            inputs:
+              targetPath: $(Build.SourcesDirectory)/TestOutput
+              artifact: PATE-Artifacts-TC1_PJC_001
