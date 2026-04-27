@@ -33,17 +33,17 @@ schedules:
 variables:
   # ── Power Platform environment ───────────────────────────────────────────────
   - name: POWER_APPS_ENVIRONMENT_URL
-    value: 'https://your-org.crm.dynamics.com'   # CHANGE THIS — your Dataverse URL
+    value: 'https://devhugoplaygroundpoc.crm4.dynamics.com/'   # CHANGE THIS — your Dataverse URL
   - name: POWER_APPS_ENVIRONMENT_ID
-    value: '00000000-0000-0000-0000-000000000000' # CHANGE THIS — environment GUID
+    value: '493ec420-26dc-ebc2-9bc0-11821149f051' # CHANGE THIS — environment GUID
 
   # ── Tenant / Auth ─────────────────────────────────────────────────────────────
   - name: AZURE_TENANT_ID
-    value: 'yourtenant.onmicrosoft.com'           # CHANGE THIS
+    value: '47f44079-0021-4177-80c9-68531941e357'           # CHANGE THIS
 
   # ── Test user (User1 persona defined in TC1_PJC_001.fx.yaml) ─────────────────
   - name: user1Email
-    value: 'your-test-user@yourdomain.com'        # CHANGE THIS
+    value: 'mengchanna1991@gmail.com'        # CHANGE THIS
   # user1Password is added as a SECRET pipeline variable (not listed here)
 
   # ── Test file glob ─────────────────────────────────────────────────────────────
