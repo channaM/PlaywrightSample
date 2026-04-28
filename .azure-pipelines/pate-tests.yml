@@ -58,23 +58,22 @@ stages:
         displayName: 'Run *.fx.yaml tests (pac test run)'
         timeoutInMinutes: 60
         pool:
-          vmImage: 'windows-latest'   # PATE requires Windows for pac CLI
+          name: 'Local-Agent'   # self-hosted agent on Mac
 
         steps:
           - checkout: self
 
-          # ── Install pac CLI via .NET global tool (no service connection needed) ──
+          # ── Install pac CLI via .NET global tool ─────────────────────────────
           - task: UseDotNet@2
             displayName: 'Use .NET 8'
             inputs:
               packageType: sdk
               version: '8.x'
 
-          - pwsh: |
-              dotnet tool install --global Microsoft.PowerApps.CLI.Tool
-              $toolPath = "$env:USERPROFILE\.dotnet\tools"
-              Write-Host "##vso[task.prependpath]$toolPath"
-              & "$toolPath\pac.exe" --version
+          - bash: |
+              dotnet tool install --global Microsoft.PowerApps.CLI.Tool || true
+              echo "##vso[task.prependpath]$HOME/.dotnet/tools"
+              $HOME/.dotnet/tools/pac --version
             displayName: 'Install pac CLI (.NET global tool)'
 
           # ── Install Playwright / Chromium for PATE ──────────────────────────
@@ -83,28 +82,26 @@ stages:
             inputs:
               versionSpec: '20.x'
 
-          - script: npx playwright install chromium --with-deps
+          - bash: npx playwright install chromium --with-deps
             displayName: 'Pre-install Playwright Chromium'
             failOnStderr: false
             timeoutInMinutes: 15
 
           # ── Run the fx.yaml test suite ──────────────────────────────────────
-          - script: |
-              pac test run ^
-                --test-plan-file "$(testPlanFile)" ^
-                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" ^
-                --tenant "$(AZURE_TENANT_ID)" ^
-                --username "$(user1Email)" ^
+          - bash: |
+              $HOME/.dotnet/tools/pac test run \
+                --test-plan-file "$(testPlanFile)" \
+                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
+                --tenant "$(AZURE_TENANT_ID)" \
+                --username "$(user1Email)" \
                 --password "$(user1Password)"
             displayName: 'pac test run — TC1_PJC_001.fx.yaml'
             workingDirectory: $(Build.SourcesDirectory)
             env:
               user1Email: $(user1Email)
-              user1Password: $(user1Password)   # pipeline secret
+              user1Password: $(user1Password)
 
           # ── Publish JUnit test results ──────────────────────────────────────
-          # pac test run writes results to: TestOutput/ by default.
-          # Adjust testResultsFiles path if your pac version writes elsewhere.
           - task: PublishTestResults@2
             displayName: 'Publish test results — TC1_PJC_001'
             condition: succeededOrFailed()
