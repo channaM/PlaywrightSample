@@ -70,11 +70,11 @@ stages:
               packageType: sdk
               version: '10.x'
 
-          - bash: |
+          - bash: |       
               dotnet tool install --global Microsoft.PowerApps.CLI.Tool || true
-              echo "##vso[task.prependpath]$HOME/.dotnet/tools"
-              $HOME/.dotnet/tools/pac --version
-            displayName: 'Install pac CLI (.NET global tool)'
+              echo "##vso[task.prependpath]$HOME/.dotnet/tools"                                                        
+              $HOME/.dotnet/tools/pac help || true
+              displayName: 'Install pac CLI (.NET global tool)' 
 
           # ── Install Playwright / Chromium for PATE ──────────────────────────
           - task: NodeTool@0
