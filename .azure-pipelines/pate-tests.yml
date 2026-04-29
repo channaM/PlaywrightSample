@@ -58,7 +58,7 @@ stages:
         displayName: 'Run *.fx.yaml tests (pac test run)'
         timeoutInMinutes: 60
         pool:
-          name: 'Azure Pipelines 1'   # self-hosted agent on Mac
+          name: 'Azure Pipelines'   # self-hosted agent on Mac
 
         steps:
           - checkout: self
