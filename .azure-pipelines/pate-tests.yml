@@ -104,13 +104,10 @@ stages:
                 --test-plan-file "$(testPlanFile)" \
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
                 --tenant "$(AZURE_TENANT_ID)" \
-                --username "$(user1Email)" \
-                --password "$(user1Password)"
+                --user-auth Storagestate \
+                --output-directory "$(Build.SourcesDirectory)/TestOutput"
             displayName: 'pac test run — TC1_PJC_001.fx.yaml'
             workingDirectory: $(Build.SourcesDirectory)
-            env:
-              user1Email: $(user1Email)
-              user1Password: $(user1Password)  
 
           # ── Publish JUnit test results ──────────────────────────────────────
           - task: PublishTestResults@2
