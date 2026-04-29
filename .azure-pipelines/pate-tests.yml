@@ -92,13 +92,13 @@ stages:
             displayName: 'pac test run — TC1_PJC_001.fx.yaml'                                                  
             workingDirectory: $(Build.SourcesDirectory)                                                        
             env:                                                                                               
-              user1Email: $(user1Email)                                                                        
-              user1Password: $(user1Password)                                                                  
               POWER_APPS_ENVIRONMENT_URL: $(POWER_APPS_ENVIRONMENT_URL)                                        
               POWER_APPS_ENVIRONMENT_ID: $(POWER_APPS_ENVIRONMENT_ID)                                          
               AZURE_TENANT_ID: $(AZURE_TENANT_ID)                                                              
               testPlanFile: $(testPlanFile)                                                                    
-              BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory) 
+              BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)                                              
+              APP_CLIENT_ID: $(appClientId)                                                                    
+              APP_CLIENT_SECRET: $(appClientSecret) 
 
           # ── Publish JUnit test results ──────────────────────────────────────
           - task: PublishTestResults@2
