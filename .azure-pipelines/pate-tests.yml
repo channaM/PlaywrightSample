@@ -48,7 +48,7 @@ variables:
 
   # ── Test file glob ─────────────────────────────────────────────────────────────
   - name: testPlanFile
-    value: 'packages/e2e-tests/tests/gen-ux/basic-form/basic-form.test.ts'
+    value: 'tests/TC1_PJC_001.fx.yaml'
 
 stages:
   - stage: PATETests
