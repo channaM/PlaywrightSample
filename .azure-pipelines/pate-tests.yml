@@ -68,13 +68,13 @@ stages:
             displayName: 'Use .NET 8'
             inputs:
               packageType: sdk
-              version: '8.x'
+              version: '10.x'
 
-          - bash: |
+          - bash: |       
               dotnet tool install --global Microsoft.PowerApps.CLI.Tool || true
-              echo "##vso[task.prependpath]$HOME/.dotnet/tools"
-              $HOME/.dotnet/tools/pac --version
-            displayName: 'Install pac CLI (.NET global tool)'
+              echo "##vso[task.prependpath]$HOME/.dotnet/tools"                                                        
+              $HOME/.dotnet/tools/pac help || true
+            displayName: 'Install pac CLI (.NET global tool)' 
 
           # ── Install Playwright / Chromium for PATE ──────────────────────────
           - task: NodeTool@0
@@ -82,24 +82,26 @@ stages:
             inputs:
               versionSpec: '20.x'
 
-          - bash: npx playwright install msedge --with-deps
-            displayName: 'Pre-install Microsoft Edge (msedge)'
+          - bash: npx playwright install chromium --with-deps
+            displayName: 'Pre-install Playwright Chromium'
             failOnStderr: false
             timeoutInMinutes: 15
 
           # ── Run the fx.yaml test suite ──────────────────────────────────────
-          - bash: |
-              $HOME/.dotnet/tools/pac test run \
-                --test-plan-file "$(testPlanFile)" \
-                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
-                --tenant "$(AZURE_TENANT_ID)" \
-                --username "$(user1Email)" \
-                --password "$(user1Password)"
-            displayName: 'pac test run — TC1_PJC_001.fx.yaml'
-            workingDirectory: $(Build.SourcesDirectory)
-            env:
-              user1Email: $(user1Email)
-              user1Password: $(user1Password)
+          - bash: mkdir -p "$(Build.SourcesDirectory)/TestOutput"   
+            displayName: 'Create TestOutput directory'             
+          
+          - bash: /Users/channa/run-pate-tests.sh                                                              
+            displayName: 'pac test run — TC1_PJC_001.fx.yaml'                                                  
+            workingDirectory: $(Build.SourcesDirectory)                                                        
+            env:                                                                                               
+              POWER_APPS_ENVIRONMENT_URL: $(POWER_APPS_ENVIRONMENT_URL)                                        
+              POWER_APPS_ENVIRONMENT_ID: $(POWER_APPS_ENVIRONMENT_ID)                                          
+              AZURE_TENANT_ID: $(AZURE_TENANT_ID)                                                              
+              testPlanFile: $(testPlanFile)                                                                    
+              BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)                                              
+              APP_CLIENT_ID: $(appClientId)                                                                    
+              APP_CLIENT_SECRET: $(appClientSecret) 
 
           # ── Publish JUnit test results ──────────────────────────────────────
           - task: PublishTestResults@2
