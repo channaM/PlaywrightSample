@@ -74,7 +74,7 @@ stages:
               dotnet tool install --global Microsoft.PowerApps.CLI.Tool || true
               echo "##vso[task.prependpath]$HOME/.dotnet/tools"                                                        
               $HOME/.dotnet/tools/pac help || true
-              displayName: 'Install pac CLI (.NET global tool)' 
+            displayName: 'Install pac CLI (.NET global tool)' 
 
           # ── Install Playwright / Chromium for PATE ──────────────────────────
           - task: NodeTool@0
