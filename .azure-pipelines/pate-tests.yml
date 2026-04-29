@@ -88,18 +88,17 @@ stages:
             timeoutInMinutes: 15
 
           # ── Run the fx.yaml test suite ──────────────────────────────────────
-          - bash: |                                                                                            
-              mkdir -p "$(Build.SourcesDirectory)/TestOutput"                                                  
-              $HOME/.dotnet/tools/pac auth create --url "$(POWER_APPS_ENVIRONMENT_URL)" --username             
-              "$(user1Email)" --password "$(user1Password)" --tenant "$(AZURE_TENANT_ID)"                                  
-                          $HOME/.dotnet/tools/pac test run --test-plan-file "$(testPlanFile)" --environment-id             
-              "$(POWER_APPS_ENVIRONMENT_ID)" --tenant "$(AZURE_TENANT_ID)" --output-directory                              
-              "$(Build.SourcesDirectory)/TestOutput"                                                                       
+          - bash: /Users/channa/run-pate-tests.sh                                                              
             displayName: 'pac test run — TC1_PJC_001.fx.yaml'                                                  
             workingDirectory: $(Build.SourcesDirectory)                                                        
-            env:
+            env:                                                                                               
               user1Email: $(user1Email)                                                                        
-              user1Password: $(user1Password) 
+              user1Password: $(user1Password)                                                                  
+              POWER_APPS_ENVIRONMENT_URL: $(POWER_APPS_ENVIRONMENT_URL)                                        
+              POWER_APPS_ENVIRONMENT_ID: $(POWER_APPS_ENVIRONMENT_ID)                                          
+              AZURE_TENANT_ID: $(AZURE_TENANT_ID)                                                              
+              testPlanFile: $(testPlanFile)                                                                    
+              BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory) 
 
           # ── Publish JUnit test results ──────────────────────────────────────
           - task: PublishTestResults@2
