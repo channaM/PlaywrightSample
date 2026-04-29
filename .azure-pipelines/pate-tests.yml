@@ -86,6 +86,17 @@ stages:
             displayName: 'Pre-install Playwright Chromium'
             failOnStderr: false
             timeoutInMinutes: 15
+          
+          # ── Authenticate with Power Platform ────────────────────────────────
+          - bash: |
+              mkdir -p "$(Build.SourcesDirectory)/TestOutput"
+              pac auth create \
+                --environment "$(POWER_APPS_ENVIRONMENT_URL)" \
+                --username "$(user1Email)" \
+                --password "$(user1Password)"
+            displayName: 'pac auth create — authenticate to environment'
+            env:
+              user1Password: $(user1Password)
 
           # ── Run the fx.yaml test suite ──────────────────────────────────────
           - bash: |
