@@ -104,7 +104,7 @@ stages:
             workingDirectory: $(Build.SourcesDirectory)
             env:                                                                                                       
               user1Email: $(user1Email)
-              user1Password: $(user1Password)  
+              user1Password: $(user1Password)
 
           # ── Publish JUnit test results ──────────────────────────────────────
           - task: PublishTestResults@2
