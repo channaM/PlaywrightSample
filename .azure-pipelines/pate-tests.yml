@@ -90,7 +90,7 @@ stages:
           # ── Authenticate with Power Platform ────────────────────────────────
           - bash: |
               mkdir -p "$(Build.SourcesDirectory)/TestOutput"
-              pac auth create \
+              $HOME/.dotnet/tools/pac auth create \
                 --environment "$(POWER_APPS_ENVIRONMENT_URL)" \
                 --username "$(user1Email)" \
                 --password "$(user1Password)"
