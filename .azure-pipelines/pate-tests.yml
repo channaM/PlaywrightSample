@@ -58,7 +58,7 @@ stages:
         displayName: 'Run *.fx.yaml tests (pac test run)'
         timeoutInMinutes: 60
         pool:
-          name: 'Local-Agent'   # self-hosted agent on Mac
+          name: 'TEST POOL'   # self-hosted agent on Mac
 
         steps:
           - checkout: self
