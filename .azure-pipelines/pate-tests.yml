@@ -89,20 +89,14 @@ stages:
 
           # ── Run the fx.yaml test suite ──────────────────────────────────────
           - bash: |                                                                                                    
-              $HOME/.dotnet/tools/pac auth create \
-                --username "$(user1Email)" \                                                                           
-                --password "$(user1Password)" \
-                --environment "$(POWER_APPS_ENVIRONMENT_URL)" \                                                        
-                --tenant "$(AZURE_TENANT_ID)"                                                                          
-          
-              $HOME/.dotnet/tools/pac test run \                                                                       
-                --test-plan-file "$(testPlanFile)" \
-                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
-                --tenant "$(AZURE_TENANT_ID)" \                                                                        
-                --output-directory "$(Build.SourcesDirectory)/TestOutput"
+                $HOME/.dotnet/tools/pac auth create --username "$(user1Email)" --password "$(user1Password)" 
+                --environment "$(POWER_APPS_ENVIRONMENT_URL)" --tenant "$(AZURE_TENANT_ID)"                                  
+                $HOME/.dotnet/tools/pac test run --test-plan-file "$(testPlanFile)" --environment-id 
+                "$(POWER_APPS_ENVIRONMENT_ID)" --tenant "$(AZURE_TENANT_ID)" --output-directory                              
+                "$(Build.SourcesDirectory)/TestOutput"
             displayName: 'pac test run — TC1_PJC_001.fx.yaml'                                                          
             workingDirectory: $(Build.SourcesDirectory)
-            env:                                                                                                       
+            env:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
 
