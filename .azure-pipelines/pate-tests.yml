@@ -96,6 +96,7 @@ stages:
                 --password "$(user1Password)"
             displayName: 'pac auth create — authenticate to environment'
             env:
+              user1Email: $(user1Email)
               user1Password: $(user1Password)
 
           # ── Run the fx.yaml test suite ──────────────────────────────────────
