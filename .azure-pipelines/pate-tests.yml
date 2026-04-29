@@ -88,20 +88,18 @@ stages:
             timeoutInMinutes: 15
 
           # ── Run the fx.yaml test suite ──────────────────────────────────────
-          - bash: mkdir -p "$(Build.SourcesDirectory)/TestOutput"   
-            displayName: 'Create TestOutput directory'             
-          
-          - bash: /Users/channa/run-pate-tests.sh                                                              
-            displayName: 'pac test run — TC1_PJC_001.fx.yaml'                                                  
-            workingDirectory: $(Build.SourcesDirectory)                                                        
-            env:                                                                                               
-              POWER_APPS_ENVIRONMENT_URL: $(POWER_APPS_ENVIRONMENT_URL)                                        
-              POWER_APPS_ENVIRONMENT_ID: $(POWER_APPS_ENVIRONMENT_ID)                                          
-              AZURE_TENANT_ID: $(AZURE_TENANT_ID)                                                              
-              testPlanFile: $(testPlanFile)                                                                    
-              BUILD_SOURCESDIRECTORY: $(Build.SourcesDirectory)                                              
-              APP_CLIENT_ID: $(appClientId)                                                                    
-              APP_CLIENT_SECRET: $(appClientSecret) 
+          - bash: |
+              $HOME/.dotnet/tools/pac test run \
+                --test-plan-file "$(testPlanFile)" \
+                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
+                --tenant "$(AZURE_TENANT_ID)" \
+                --username "$(user1Email)" \
+                --password "$(user1Password)"
+            displayName: 'pac test run — TC1_PJC_001.fx.yaml'
+            workingDirectory: $(Build.SourcesDirectory)
+            env:
+              user1Email: $(user1Email)
+              user1Password: $(user1Password)  
 
           # ── Publish JUnit test results ──────────────────────────────────────
           - task: PublishTestResults@2
