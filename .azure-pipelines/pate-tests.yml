@@ -68,7 +68,7 @@ stages:
             displayName: 'Use .NET 8'
             inputs:
               packageType: sdk
-              version: '8.x'
+              version: '10.x'
 
           - bash: |
               dotnet tool install --global Microsoft.PowerApps.CLI.Tool || true
