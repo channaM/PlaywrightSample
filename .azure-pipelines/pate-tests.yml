@@ -43,7 +43,7 @@ variables:
 
   # ── Test user (User1 persona defined in TC1_PJC_001.fx.yaml) ─────────────────
   - name: user1Email
-    value: 'mengchanna1991@gmail.com'        # CHANGE THIS
+    value: 'channa.meng.extern@semperitgroup.com'        # CHANGE THIS
   # user1Password is added as a SECRET pipeline variable (not listed here)
 
   # ── Test file glob ─────────────────────────────────────────────────────────────
@@ -58,7 +58,7 @@ stages:
         displayName: 'Run *.fx.yaml tests (pac test run)'
         timeoutInMinutes: 60
         pool:
-          name: 'TEST POOL'   # self-hosted agent on Mac
+          name: 'Azure Pipelines 1'   # self-hosted agent on Mac
 
         steps:
           - checkout: self
