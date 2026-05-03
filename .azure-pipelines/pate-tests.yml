@@ -72,22 +72,17 @@ stages:
                 -o "$PAC_DIR/pac-tool.zip"
               unzip -q "$PAC_DIR/pac-tool.zip" -d "$PAC_DIR/pkg"
 
-              # Select the shim matching the agent OS architecture
-              case "$(uname -m)" in
-                x86_64)  ARCH="linux-x64" ;;
-                aarch64) ARCH="linux-arm64" ;;
-                *)        ARCH="linux-x64" ;;
-              esac
-              echo "Agent arch: $(uname -m) → looking for $ARCH shim"
-
-              PAC_BIN=$(find "$PAC_DIR/pkg" -name "pac" -path "*shims/$ARCH/*" -type f 2>/dev/null | head -1)
-              if [ -n "$PAC_BIN" ]; then
-                chmod +x "$PAC_BIN"
-                echo "##vso[task.prependpath]$(dirname "$PAC_BIN")"
-                "$PAC_BIN" --version
+              # No Linux shim exists in the package — find pac.dll and wrap with dotnet
+              PAC_DLL=$(find "$PAC_DIR/pkg" -name "pac.dll" -type f 2>/dev/null | head -1)
+              if [ -n "$PAC_DLL" ]; then
+                printf '#!/bin/bash\nexec dotnet "%s" "$@"\n' "$PAC_DLL" > "$PAC_DIR/bin/pac"
+                chmod +x "$PAC_DIR/bin/pac"
+                echo "##vso[task.prependpath]$PAC_DIR/bin"
+                "$PAC_DIR/bin/pac" --version
               else
-                echo "##[error]pac shim not found for $ARCH. Package contents:"
-                find "$PAC_DIR/pkg" -type f | sort
+                # Diagnostic: show root-level DLLs (skip locale subdirs) to find entry point
+                echo "##[error]pac.dll not found. Root DLLs in package:"
+                find "$PAC_DIR/pkg" -name "*.dll" -not -path "*/*-*/*" -not -path "*/shims/*" | sort
                 exit 1
               fi
             displayName: "Install pac CLI from NuGet"
