@@ -77,19 +77,20 @@ stages:
               if [ -n "$PAC_BIN" ]; then
                 chmod +x "$PAC_BIN"
                 echo "##vso[task.prependpath]$(dirname "$PAC_BIN")"
+                "$PAC_BIN" --version
               else
                 PAC_DLL=$(find "$PAC_DIR/pkg" -name "pac.dll" -type f 2>/dev/null | head -1)
                 if [ -n "$PAC_DLL" ]; then
                   printf '#!/bin/bash\nexec dotnet "%s" "$@"\n' "$PAC_DLL" > "$PAC_DIR/bin/pac"
                   chmod +x "$PAC_DIR/bin/pac"
                   echo "##vso[task.prependpath]$PAC_DIR/bin"
+                  "$PAC_DIR/bin/pac" --version
                 else
                   echo "##[error]pac / pac.dll not found. Package contents:"
                   find "$PAC_DIR/pkg" -type f | sort
                   exit 1
                 fi
               fi
-              pac --version
             displayName: "Install pac CLI from NuGet"
 
           - bash: |
@@ -142,19 +143,20 @@ stages:
               if ($pac) {
                 Write-Host "Found pac.exe at: $($pac.FullName)"
                 Write-Host "##vso[task.prependpath]$($pac.DirectoryName)"
+                & $pac.FullName --version
               } else {
                 $pacDll = Get-ChildItem "$pacDir\pkg" -Filter "pac.dll" -Recurse | Select-Object -First 1
                 if ($pacDll) {
                   $wrapper = "@echo off`r`ndotnet `"$($pacDll.FullName)`" %*"
                   Set-Content -Path "$binDir\pac.cmd" -Value $wrapper -Encoding ASCII
                   Write-Host "##vso[task.prependpath]$binDir"
+                  & dotnet $pacDll.FullName --version
                 } else {
                   Write-Error "pac.exe / pac.dll not found. Package contents:"
                   Get-ChildItem "$pacDir\pkg" -Recurse | Select-Object FullName | Sort-Object FullName
                   exit 1
                 }
               }
-              pac --version
             displayName: "Install pac CLI from NuGet"
 
           - task: UseDotNet@2
