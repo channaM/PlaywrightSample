@@ -70,23 +70,21 @@ stages:
         displayName: 'pac power-fx run'
         timeoutInMinutes: 30
         pool:
-          name: 'Local-Agent'
+          name: 'Azure Pipelines'
+          vmImage: 'ubuntu-latest'
 
         steps:
           - checkout: self
 
-          - task: UseDotNet@2
-            displayName: 'Use .NET 8'
+          # Requires the "Power Platform Build Tools" extension in your ADO org:
+          # https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.PowerPlatform-BuildTools
+          - task: PowerPlatformToolInstaller@2
+            displayName: 'Install Power Platform CLI (pac)'
             inputs:
-              packageType: sdk
-              version: '8.x'
+              DefaultVersion: true
 
-          - bash: |
-              dotnet tool update --global Microsoft.PowerApps.CLI.Tool 2>/dev/null \
-                || dotnet tool install --global Microsoft.PowerApps.CLI.Tool
-              echo "##vso[task.prependpath]$HOME/.dotnet/tools"
-              $HOME/.dotnet/tools/pac --version
-            displayName: 'Install / update pac CLI'
+          - bash: pac --version
+            displayName: 'Verify pac CLI'
 
           - bash: |
               pac auth create \
@@ -116,23 +114,27 @@ stages:
         displayName: 'pac test run --provider Canvas'
         timeoutInMinutes: 60
         pool:
-          name: 'Local-Agent'
+          name: 'Azure Pipelines'
+          vmImage: 'ubuntu-latest'
 
         steps:
           - checkout: self
+
+          # Requires the "Power Platform Build Tools" extension in your ADO org:
+          # https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.PowerPlatform-BuildTools
+          - task: PowerPlatformToolInstaller@2
+            displayName: 'Install Power Platform CLI (pac)'
+            inputs:
+              DefaultVersion: true
+
+          - bash: pac --version
+            displayName: 'Verify pac CLI'
 
           - task: UseDotNet@2
             displayName: 'Use .NET 8'
             inputs:
               packageType: sdk
               version: '8.x'
-
-          - bash: |
-              dotnet tool update --global Microsoft.PowerApps.CLI.Tool 2>/dev/null \
-                || dotnet tool install --global Microsoft.PowerApps.CLI.Tool
-              echo "##vso[task.prependpath]$HOME/.dotnet/tools"
-              $HOME/.dotnet/tools/pac --version
-            displayName: 'Install / update pac CLI'
 
           - task: NodeTool@0
             displayName: 'Use Node.js 20.x'
