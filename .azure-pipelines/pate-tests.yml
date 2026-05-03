@@ -4,12 +4,10 @@ name: pate-e2e-$(Rev:rrr)
 # Power Platform — TC1_PJC_001 Pipeline
 # Runs two parallel jobs against the same test file:
 #
-#   Job 1 — pac power-fx run
-#     Executes Power Fx instructions against Dataverse (no browser).
+#   Job 1 — pac power-fx run   (ubuntu-latest, bash)
+#   Job 2 — pac test run       (windows-latest, pwsh)
 #
-#   Job 2 — pac test run --provider Canvas
-#     Runs the full PATE test suite via the Test Engine (Chromium browser).
-#     Publishes JUnit results and video/screenshot artifacts.
+# pac CLI is installed by downloading Microsoft.PowerApps.CLI from NuGet.
 #
 # Test file : tests/TC1_PJC_001.fx.yaml
 # App       : capop_opexcapexapprovalappv34_ddc56
@@ -19,10 +17,6 @@ name: pate-e2e-$(Rev:rrr)
 #   1. Replace every "# CHANGE THIS" value below with your own.
 #   2. Add pipeline secret variables in ADO:
 #        user1Password = <test account password>
-#      (Pipelines → Edit → Variables → + Add → tick "Keep this value secret")
-#   3. Import this file in ADO:
-#        Pipelines → New pipeline → GitHub → select repo →
-#        Existing YAML file → .azure-pipelines/pate-tests.yml
 # ─────────────────────────────────────────────────────────────────────────────
 
 trigger: none
@@ -37,22 +31,15 @@ schedules:
     always: true
 
 variables:
-  # ── Power Platform environment ───────────────────────────────────────────────
   - name: POWER_APPS_ENVIRONMENT_URL
-    value: "https://devhugoplaygroundpoc.crm4.dynamics.com/" # CHANGE THIS — your Dataverse URL
+    value: "https://devhugoplaygroundpoc.crm4.dynamics.com/"   # CHANGE THIS
   - name: POWER_APPS_ENVIRONMENT_ID
-    value: "493ec420-26dc-ebc2-9bc0-11821149f051" # CHANGE THIS — environment GUID
-
-  # ── Tenant / Auth ─────────────────────────────────────────────────────────────
+    value: "493ec420-26dc-ebc2-9bc0-11821149f051"              # CHANGE THIS
   - name: AZURE_TENANT_ID
-    value: "47f44079-0021-4177-80c9-68531941e357" # CHANGE THIS
-
-  # ── Test user (User1 persona defined in TC1_PJC_001.fx.yaml) ─────────────────
+    value: "47f44079-0021-4177-80c9-68531941e357"              # CHANGE THIS
   - name: user1Email
-    value: "channa.meng.extern@semperitgroup.com" # CHANGE THIS
-  # user1Password is added as a SECRET pipeline variable (not listed here)
-
-  # ── Test file ─────────────────────────────────────────────────────────────────
+    value: "channa.meng.extern@semperitgroup.com"              # CHANGE THIS
+  # user1Password — add as a SECRET pipeline variable in ADO
   - name: testPlanFile
     value: "tests/TC1_PJC_001.fx.yaml"
 
@@ -62,9 +49,7 @@ stages:
     jobs:
 
       # ══════════════════════════════════════════════════════════════════════════
-      # Job 1 — pac power-fx run
-      # Executes Power Fx expressions directly against Dataverse (no browser).
-      # Outputs to stdout only — no JUnit results or video artifacts.
+      # Job 1 — pac power-fx run (ubuntu-latest)
       # ══════════════════════════════════════════════════════════════════════════
       - job: PowerFxRun
         displayName: "pac power-fx run"
@@ -76,31 +61,26 @@ stages:
         steps:
           - checkout: self
 
-          # Requires the "Power Platform Build Tools" extension in your ADO org:
-          # https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.PowerPlatform-BuildTools
-          - task: PowerPlatformToolInstaller@2
-            displayName: "Install Power Platform CLI (pac)"
-            inputs:
-              DefaultVersion: true
-
+          # Download Microsoft.PowerApps.CLI from NuGet and extract the Linux binary
           - bash: |
-              # 1. PowerPlatformToolInstaller may have already added pac to PATH
-              if command -v pac &>/dev/null; then
-                pac --version
-                exit 0
+              PAC_DIR="$AGENT_TOOLSDIRECTORY/pac"
+              mkdir -p "$PAC_DIR"
+              VERSION=$(curl -fsSL "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli/index.json" \
+                | python3 -c "import sys,json; print(json.load(sys.stdin)['versions'][-1])")
+              echo "Downloading Microsoft.PowerApps.CLI v$VERSION"
+              curl -fsSL "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli/$VERSION/microsoft.powerapps.cli.$VERSION.nupkg" \
+                -o "$PAC_DIR/pac.zip"
+              unzip -q "$PAC_DIR/pac.zip" -d "$PAC_DIR/pkg"
+              PAC_BIN=$(find "$PAC_DIR/pkg" -name "pac" -not -name "*.dll" -not -name "*.xml" -type f 2>/dev/null | head -1)
+              if [ -z "$PAC_BIN" ]; then
+                echo "##[error]pac binary not found. Package contents:"
+                find "$PAC_DIR/pkg" -type f | head -40
+                exit 1
               fi
-              # 2. Search common install locations
-              pac_bin=$(find "${AGENT_TOOLSDIRECTORY}" /home /opt/pac -name "pac" -type f 2>/dev/null | head -1)
-              if [ -n "$pac_bin" ]; then
-                echo "##vso[task.prependpath]$(dirname "$pac_bin")"
-                "$pac_bin" --version
-                exit 0
-              fi
-              # 3. Diagnostic: show what the installer left behind
-              echo "##[error]pac not found. Tool directories:"
-              ls -la "${AGENT_TOOLSDIRECTORY}" 2>/dev/null || true
-              exit 1
-            displayName: "Add pac CLI to PATH"
+              chmod +x "$PAC_BIN"
+              echo "##vso[task.prependpath]$(dirname "$PAC_BIN")"
+              "$PAC_BIN" --version
+            displayName: "Install pac CLI from NuGet"
 
           - bash: |
               pac auth create \
@@ -122,9 +102,7 @@ stages:
               user1Password: $(user1Password)
 
       # ══════════════════════════════════════════════════════════════════════════
-      # Job 2 — pac test run --provider Canvas
-      # Runs the full Power Apps Test Engine suite (Chromium browser).
-      # Produces JUnit XML results and video/screenshot artifacts.
+      # Job 2 — pac test run --provider Canvas (windows-latest)
       # ══════════════════════════════════════════════════════════════════════════
       - job: CanvasTestRun
         displayName: "pac test run --provider Canvas"
@@ -136,32 +114,26 @@ stages:
         steps:
           - checkout: self
 
-          # Requires the "Power Platform Build Tools" extension in your ADO org:
-          # https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.PowerPlatform-BuildTools
-          - task: PowerPlatformToolInstaller@2
-            displayName: "Install Power Platform CLI (pac)"
-            inputs:
-              DefaultVersion: true
-
+          # Download Microsoft.PowerApps.CLI from NuGet and extract the Windows binary
           - pwsh: |
-              # 1. PowerPlatformToolInstaller may have already added pac to PATH
-              if (Get-Command pac -ErrorAction SilentlyContinue) {
-                pac --version
-                exit 0
+              $pacDir = "$env:AGENT_TOOLSDIRECTORY\pac"
+              New-Item -ItemType Directory -Path $pacDir -Force | Out-Null
+              $idx = Invoke-RestMethod "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli/index.json" -UseBasicParsing
+              $version = $idx.versions[-1]
+              Write-Host "Downloading Microsoft.PowerApps.CLI v$version"
+              $url = "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli/$version/microsoft.powerapps.cli.$version.nupkg"
+              Invoke-WebRequest $url -OutFile "$pacDir\pac.zip" -UseBasicParsing
+              Expand-Archive "$pacDir\pac.zip" -DestinationPath "$pacDir\pkg" -Force
+              $pac = Get-ChildItem "$pacDir\pkg" -Filter "pac.exe" -Recurse | Select-Object -First 1
+              if (-not $pac) {
+                Write-Error "pac.exe not found. Package contents:"
+                Get-ChildItem "$pacDir\pkg" -Recurse | Select-Object FullName
+                exit 1
               }
-              # 2. Search common install locations
-              $pac = Get-ChildItem -Path $env:AGENT_TOOLSDIRECTORY, 'C:\pac', "$env:LOCALAPPDATA\Microsoft\PowerAppsCLI" `
-                -Filter 'pac.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-              if ($pac) {
-                Write-Host "##vso[task.prependpath]$($pac.DirectoryName)"
-                & $pac.FullName --version
-                exit 0
-              }
-              # 3. Diagnostic: show what the installer left behind
-              Write-Error "pac.exe not found. Tool directories:"
-              Get-ChildItem $env:AGENT_TOOLSDIRECTORY -ErrorAction SilentlyContinue
-              exit 1
-            displayName: "Add pac CLI to PATH"
+              Write-Host "Found pac at: $($pac.FullName)"
+              Write-Host "##vso[task.prependpath]$($pac.DirectoryName)"
+              & $pac.FullName --version
+            displayName: "Install pac CLI from NuGet"
 
           - task: UseDotNet@2
             displayName: "Use .NET 8"
