@@ -71,7 +71,7 @@ stages:
         timeoutInMinutes: 30
         pool:
           name: "Azure Pipelines"
-          vmImage: "windows-latest"
+          vmImage: "ubuntu-latest"
 
         steps:
           - checkout: self
@@ -83,21 +83,21 @@ stages:
             inputs:
               DefaultVersion: true
 
-          - pwsh: pac --version
+          - bash: pac --version
             displayName: "Verify pac CLI"
 
-          - pwsh: |
-              pac auth create `
-                --environment "$(POWER_APPS_ENVIRONMENT_URL)" `
-                --username "$(user1Email)" `
+          - bash: |
+              pac auth create \
+                --environment "$(POWER_APPS_ENVIRONMENT_URL)" \
+                --username "$(user1Email)" \
                 --password "$(user1Password)"
             displayName: "pac auth create"
             env:
               user1Password: $(user1Password)
 
-          - pwsh: |
-              pac power-fx run `
-                --file "$(testPlanFile)" `
+          - bash: |
+              pac power-fx run \
+                --file "$(testPlanFile)" \
                 --environment "$(POWER_APPS_ENVIRONMENT_URL)"
             displayName: "pac power-fx run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
