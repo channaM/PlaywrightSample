@@ -29,7 +29,7 @@ trigger: none
 pr: none
 
 schedules:
-  - cron: '0 6 * * 1-5'
+  - cron: "0 6 * * 1-5"
     displayName: Daily PATE tests (weekdays 06:00 UTC)
     branches:
       include:
@@ -39,26 +39,26 @@ schedules:
 variables:
   # ── Power Platform environment ───────────────────────────────────────────────
   - name: POWER_APPS_ENVIRONMENT_URL
-    value: 'https://devhugoplaygroundpoc.crm4.dynamics.com/'   # CHANGE THIS — your Dataverse URL
+    value: "https://devhugoplaygroundpoc.crm4.dynamics.com/" # CHANGE THIS — your Dataverse URL
   - name: POWER_APPS_ENVIRONMENT_ID
-    value: '493ec420-26dc-ebc2-9bc0-11821149f051' # CHANGE THIS — environment GUID
+    value: "493ec420-26dc-ebc2-9bc0-11821149f051" # CHANGE THIS — environment GUID
 
   # ── Tenant / Auth ─────────────────────────────────────────────────────────────
   - name: AZURE_TENANT_ID
-    value: '47f44079-0021-4177-80c9-68531941e357'           # CHANGE THIS
+    value: "47f44079-0021-4177-80c9-68531941e357" # CHANGE THIS
 
   # ── Test user (User1 persona defined in TC1_PJC_001.fx.yaml) ─────────────────
   - name: user1Email
-    value: 'channa.meng.extern@semperitgroup.com'        # CHANGE THIS
+    value: "channa.meng.extern@semperitgroup.com" # CHANGE THIS
   # user1Password is added as a SECRET pipeline variable (not listed here)
 
   # ── Test file ─────────────────────────────────────────────────────────────────
   - name: testPlanFile
-    value: 'tests/TC1_PJC_001.fx.yaml'
+    value: "tests/TC1_PJC_001.fx.yaml"
 
 stages:
   - stage: PATETests
-    displayName: 'TC1_PJC_001 — Power Fx + Canvas (parallel)'
+    displayName: "TC1_PJC_001 — Power Fx + Canvas (parallel)"
     jobs:
 
       # ══════════════════════════════════════════════════════════════════════════
@@ -67,11 +67,11 @@ stages:
       # Outputs to stdout only — no JUnit results or video artifacts.
       # ══════════════════════════════════════════════════════════════════════════
       - job: PowerFxRun
-        displayName: 'pac power-fx run'
+        displayName: "pac power-fx run"
         timeoutInMinutes: 30
         pool:
-          name: 'Azure Pipelines'
-          vmImage: 'ubuntu-latest'
+          name: "Azure Pipelines"
+          vmImage: "windows-latest"
 
         steps:
           - checkout: self
@@ -79,27 +79,27 @@ stages:
           # Requires the "Power Platform Build Tools" extension in your ADO org:
           # https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.PowerPlatform-BuildTools
           - task: PowerPlatformToolInstaller@2
-            displayName: 'Install Power Platform CLI (pac)'
+            displayName: "Install Power Platform CLI (pac)"
             inputs:
               DefaultVersion: true
 
-          - bash: pac --version
-            displayName: 'Verify pac CLI'
+          - pwsh: pac --version
+            displayName: "Verify pac CLI"
 
-          - bash: |
-              pac auth create \
-                --environment "$(POWER_APPS_ENVIRONMENT_URL)" \
-                --username "$(user1Email)" \
+          - pwsh: |
+              pac auth create `
+                --environment "$(POWER_APPS_ENVIRONMENT_URL)" `
+                --username "$(user1Email)" `
                 --password "$(user1Password)"
-            displayName: 'pac auth create'
+            displayName: "pac auth create"
             env:
               user1Password: $(user1Password)
 
-          - bash: |
-              pac power-fx run \
-                --file "$(testPlanFile)" \
+          - pwsh: |
+              pac power-fx run `
+                --file "$(testPlanFile)" `
                 --environment "$(POWER_APPS_ENVIRONMENT_URL)"
-            displayName: 'pac power-fx run — TC1_PJC_001.fx.yaml'
+            displayName: "pac power-fx run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
             env:
               user1Email: $(user1Email)
@@ -111,11 +111,11 @@ stages:
       # Produces JUnit XML results and video/screenshot artifacts.
       # ══════════════════════════════════════════════════════════════════════════
       - job: CanvasTestRun
-        displayName: 'pac test run --provider Canvas'
+        displayName: "pac test run --provider Canvas"
         timeoutInMinutes: 60
         pool:
-          name: 'Azure Pipelines'
-          vmImage: 'ubuntu-latest'
+          name: "Azure Pipelines"
+          vmImage: "windows-latest"
 
         steps:
           - checkout: self
@@ -123,69 +123,69 @@ stages:
           # Requires the "Power Platform Build Tools" extension in your ADO org:
           # https://marketplace.visualstudio.com/items?itemName=microsoft-IsvExpTools.PowerPlatform-BuildTools
           - task: PowerPlatformToolInstaller@2
-            displayName: 'Install Power Platform CLI (pac)'
+            displayName: "Install Power Platform CLI (pac)"
             inputs:
               DefaultVersion: true
 
-          - bash: pac --version
-            displayName: 'Verify pac CLI'
+          - pwsh: pac --version
+            displayName: "Verify pac CLI"
 
           - task: UseDotNet@2
-            displayName: 'Use .NET 8'
+            displayName: "Use .NET 8"
             inputs:
               packageType: sdk
-              version: '8.x'
+              version: "8.x"
 
           - task: NodeTool@0
-            displayName: 'Use Node.js 20.x'
+            displayName: "Use Node.js 20.x"
             inputs:
-              versionSpec: '20.x'
+              versionSpec: "20.x"
 
-          # PATE uses Chromium internally (matches browser: Chromium in the fx.yaml)
-          - bash: npx playwright install chromium --with-deps
-            displayName: 'Pre-install Chromium for PATE'
+          # PATE uses Chromium internally — --with-deps is Linux-only, omit on Windows
+          - pwsh: npx playwright install chromium
+            displayName: "Pre-install Chromium for PATE"
             failOnStderr: false
             timeoutInMinutes: 15
 
-          - bash: |
-              pac auth create \
-                --environment "$(POWER_APPS_ENVIRONMENT_URL)" \
-                --username "$(user1Email)" \
+          - pwsh: |
+              pac auth create `
+                --environment "$(POWER_APPS_ENVIRONMENT_URL)" `
+                --username "$(user1Email)" `
                 --password "$(user1Password)"
-            displayName: 'pac auth create'
+            displayName: "pac auth create"
             env:
               user1Password: $(user1Password)
 
           # pac v2.6.4+: --output-directory is ignored; results always go to
-          # $HOME/Microsoft/TestEngine/TestOutput/<timestamp>/
-          - bash: |
-              pac test run \
-                --test-plan-file "$(testPlanFile)" \
-                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
-                --tenant "$(AZURE_TENANT_ID)" \
-                --provider Canvas \
-                --user-auth Storagestate \
+          # $env:USERPROFILE\Microsoft\TestEngine\TestOutput\<timestamp>\
+          - pwsh: |
+              pac test run `
+                --test-plan-file "$(testPlanFile)" `
+                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" `
+                --tenant "$(AZURE_TENANT_ID)" `
+                --provider Canvas `
+                --user-auth Storagestate `
                 --log-level Information
-            displayName: 'pac test run — TC1_PJC_001.fx.yaml'
+            displayName: "pac test run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
             env:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
 
           - task: PublishTestResults@2
-            displayName: 'Publish JUnit test results'
+            displayName: "Publish JUnit test results"
             condition: succeededOrFailed()
             inputs:
               testResultsFormat: JUnit
-              testResultsFiles: '**/*.xml'
-              searchFolder: '$(HOME)/Microsoft/TestEngine/TestOutput'
-              testRunTitle: 'Canvas — TC1_PJC_001'
+              testResultsFiles: "**/*.xml"
+              searchFolder: "$(USERPROFILE)\\Microsoft\\TestEngine\\TestOutput"
+              testRunTitle: "Canvas — TC1_PJC_001"
               failTaskOnFailedTests: true
               mergeTestResults: true
 
           - task: PublishPipelineArtifact@1
-            displayName: 'Publish test artifacts (video / screenshots)'
+            displayName: "Publish test artifacts (video / screenshots)"
             condition: succeededOrFailed()
             inputs:
-              targetPath: '$(HOME)/Microsoft/TestEngine/TestOutput'
+              targetPath: "$(USERPROFILE)\\Microsoft\\TestEngine\\TestOutput"
               artifact: Canvas-Artifacts-TC1_PJC_001
