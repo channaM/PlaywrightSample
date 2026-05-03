@@ -83,8 +83,15 @@ stages:
             inputs:
               DefaultVersion: true
 
-          - bash: pac --version
-            displayName: "Verify pac CLI"
+          - bash: |
+              pac_bin=$(find "$AGENT_TOOLSDIRECTORY" -name "pac" -type f 2>/dev/null | head -1)
+              if [ -z "$pac_bin" ]; then
+                echo "##[error]pac not found in $AGENT_TOOLSDIRECTORY"
+                exit 1
+              fi
+              echo "##vso[task.prependpath]$(dirname "$pac_bin")"
+              "$pac_bin" --version
+            displayName: "Add pac CLI to PATH"
 
           - bash: |
               pac auth create \
@@ -127,8 +134,15 @@ stages:
             inputs:
               DefaultVersion: true
 
-          - pwsh: pac --version
-            displayName: "Verify pac CLI"
+          - pwsh: |
+              $pac = Get-ChildItem -Path $env:AGENT_TOOLSDIRECTORY -Filter 'pac.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+              if (-not $pac) {
+                Write-Error "pac.exe not found in $env:AGENT_TOOLSDIRECTORY"
+                exit 1
+              }
+              Write-Host "##vso[task.prependpath]$($pac.DirectoryName)"
+              & $pac.FullName --version
+            displayName: "Add pac CLI to PATH"
 
           - task: UseDotNet@2
             displayName: "Use .NET 8"
