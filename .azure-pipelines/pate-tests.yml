@@ -84,13 +84,22 @@ stages:
               DefaultVersion: true
 
           - bash: |
-              pac_bin=$(find "$AGENT_TOOLSDIRECTORY" -name "pac" -type f 2>/dev/null | head -1)
-              if [ -z "$pac_bin" ]; then
-                echo "##[error]pac not found in $AGENT_TOOLSDIRECTORY"
-                exit 1
+              # 1. PowerPlatformToolInstaller may have already added pac to PATH
+              if command -v pac &>/dev/null; then
+                pac --version
+                exit 0
               fi
-              echo "##vso[task.prependpath]$(dirname "$pac_bin")"
-              "$pac_bin" --version
+              # 2. Search common install locations
+              pac_bin=$(find "${AGENT_TOOLSDIRECTORY}" /home /opt/pac -name "pac" -type f 2>/dev/null | head -1)
+              if [ -n "$pac_bin" ]; then
+                echo "##vso[task.prependpath]$(dirname "$pac_bin")"
+                "$pac_bin" --version
+                exit 0
+              fi
+              # 3. Diagnostic: show what the installer left behind
+              echo "##[error]pac not found. Tool directories:"
+              ls -la "${AGENT_TOOLSDIRECTORY}" 2>/dev/null || true
+              exit 1
             displayName: "Add pac CLI to PATH"
 
           - bash: |
@@ -135,13 +144,23 @@ stages:
               DefaultVersion: true
 
           - pwsh: |
-              $pac = Get-ChildItem -Path $env:AGENT_TOOLSDIRECTORY -Filter 'pac.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-              if (-not $pac) {
-                Write-Error "pac.exe not found in $env:AGENT_TOOLSDIRECTORY"
-                exit 1
+              # 1. PowerPlatformToolInstaller may have already added pac to PATH
+              if (Get-Command pac -ErrorAction SilentlyContinue) {
+                pac --version
+                exit 0
               }
-              Write-Host "##vso[task.prependpath]$($pac.DirectoryName)"
-              & $pac.FullName --version
+              # 2. Search common install locations
+              $pac = Get-ChildItem -Path $env:AGENT_TOOLSDIRECTORY, 'C:\pac', "$env:LOCALAPPDATA\Microsoft\PowerAppsCLI" `
+                -Filter 'pac.exe' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+              if ($pac) {
+                Write-Host "##vso[task.prependpath]$($pac.DirectoryName)"
+                & $pac.FullName --version
+                exit 0
+              }
+              # 3. Diagnostic: show what the installer left behind
+              Write-Error "pac.exe not found. Tool directories:"
+              Get-ChildItem $env:AGENT_TOOLSDIRECTORY -ErrorAction SilentlyContinue
+              exit 1
             displayName: "Add pac CLI to PATH"
 
           - task: UseDotNet@2
