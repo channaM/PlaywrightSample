@@ -132,26 +132,21 @@ stages:
               Invoke-WebRequest $url -OutFile "$pacDir\pac-tool.zip" -UseBasicParsing
               Expand-Archive "$pacDir\pac-tool.zip" -DestinationPath "$pacDir\pkg" -Force
 
-              # Select the shim matching the agent OS architecture
-              $osArch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-              $archSuffix = switch ($osArch) {
-                'X64'   { 'win-x64'   }
-                'Arm64' { 'win-arm64' }
-                'X86'   { 'win-x86'   }
-                default { 'win-x64'   }
-              }
-              Write-Host "Agent arch: $osArch → looking for $archSuffix shim"
-
-              $pac = Get-ChildItem "$pacDir\pkg" -Filter "pac.exe" -Recurse |
-                     Where-Object { $_.FullName -like "*\shims\$archSuffix\*" } |
-                     Select-Object -First 1
-              if ($pac) {
-                Write-Host "Found pac.exe at: $($pac.FullName)"
-                Write-Host "##vso[task.prependpath]$($pac.DirectoryName)"
-                & $pac.FullName --version
+              # Skip the shim (it needs a .store/ relative path that doesn't exist
+              # when extracted manually). Find pac.dll and wrap with dotnet instead.
+              $pacDll = Get-ChildItem "$pacDir\pkg" -Filter "pac.dll" -Recurse |
+                        Select-Object -First 1
+              if ($pacDll) {
+                Write-Host "Found pac.dll at: $($pacDll.FullName)"
+                "@echo off`r`ndotnet `"$($pacDll.FullName)`" %*" |
+                  Set-Content -Path "$binDir\pac.cmd" -Encoding ASCII
+                Write-Host "##vso[task.prependpath]$binDir"
+                & dotnet $pacDll.FullName --version
               } else {
-                Write-Error "pac.exe not found for $archSuffix. Package contents:"
-                Get-ChildItem "$pacDir\pkg" -Recurse | Select-Object FullName | Sort-Object FullName
+                Write-Error "pac.dll not found. Root-level DLLs in package:"
+                Get-ChildItem "$pacDir\pkg" -Filter "*.dll" -Recurse |
+                  Where-Object { $_.FullName -notmatch '\\[a-z]{2}(-[A-Za-z]{2,4})?\\' } |
+                  Select-Object FullName | Sort-Object FullName
                 exit 1
               }
             displayName: "Install pac CLI from NuGet"
