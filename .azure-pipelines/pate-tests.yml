@@ -125,6 +125,12 @@ stages:
         steps:
           - checkout: self
 
+          - task: UseDotNet@2
+            displayName: "Use .NET 10"
+            inputs:
+              packageType: sdk
+              version: "10.x"
+
           # Download Microsoft.PowerApps.CLI.Tool from NuGet (tool entry point package)
           - pwsh: |
               $pacDir = "$env:AGENT_TOOLSDIRECTORY\pac"
@@ -156,12 +162,6 @@ stages:
                 exit 1
               }
             displayName: "Install pac CLI from NuGet"
-
-          - task: UseDotNet@2
-            displayName: "Use .NET 8"
-            inputs:
-              packageType: sdk
-              version: "8.x"
 
           - task: NodeTool@0
             displayName: "Use Node.js 20.x"
