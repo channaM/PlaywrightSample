@@ -90,7 +90,7 @@ stages:
             displayName: "Install pac CLI from NuGet"
 
           - bash: |
-              $HOME/.dotnet/tools/pac auth create \
+              pac auth create \
                 --environment "$(POWER_APPS_ENVIRONMENT_URL)" \
                 --username "$(user1Email)" \
                 --password "$(user1Password)"
@@ -99,7 +99,7 @@ stages:
               user1Password: $(user1Password)
 
           - bash: |
-              $HOME/.dotnet/tools/pac test run \
+              pac test run \
                 --test-plan-file "$(testPlanFile)" \
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
                 --tenant "$(AZURE_TENANT_ID)" \
