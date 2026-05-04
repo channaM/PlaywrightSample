@@ -80,7 +80,7 @@ stages:
                 printf '#!/bin/bash\nexec dotnet "%s" "$@"\n' "$PAC_DLL" > "$PAC_DIR/bin/pac"
                 chmod +x "$PAC_DIR/bin/pac"
                 echo "##vso[task.prependpath]$PAC_DIR/bin"
-                "$PAC_DIR/bin/pac" --version
+                "$PAC_DIR/bin/pac" help
               else
                 # Diagnostic: show root-level DLLs (skip locale subdirs) to find entry point
                 echo "##[error]pac.dll not found. Root DLLs in package:"
@@ -147,7 +147,7 @@ stages:
                 "@echo off`r`ndotnet `"$($pacDll.FullName)`" %*" |
                   Set-Content -Path "$binDir\pac.cmd" -Encoding ASCII
                 Write-Host "##vso[task.prependpath]$binDir"
-                & dotnet $pacDll.FullName --version
+                & dotnet $pacDll.FullName help
               } else {
                 Write-Error "pac.dll not found. Root-level DLLs in package:"
                 Get-ChildItem "$pacDir\pkg" -Filter "*.dll" -Recurse |
