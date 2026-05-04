@@ -49,10 +49,12 @@ stages:
     jobs:
 
       # ══════════════════════════════════════════════════════════════════════════
-      # Job 1 — pac power-fx run (ubuntu-latest)
+      # Job 1 — pac test run --provider Powerfx (ubuntu-latest)
+      # Runs the fx.yaml test plan through the Power Fx test engine provider
+      # (no browser required — evaluates Power Fx expressions directly).
       # ══════════════════════════════════════════════════════════════════════════
       - job: PowerFxRun
-        displayName: "pac power-fx run"
+        displayName: "pac test run --provider Powerfx"
         timeoutInMinutes: 30
         pool:
           name: "Azure Pipelines"
@@ -97,10 +99,14 @@ stages:
               user1Password: $(user1Password)
 
           - bash: |
-              pac power-fx run \
-                --file "$(testPlanFile)" \
-                --environment "$(POWER_APPS_ENVIRONMENT_URL)"
-            displayName: "pac power-fx run — TC1_PJC_001.fx.yaml"
+              pac test run \
+                --test-plan-file "$(testPlanFile)" \
+                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
+                --tenant "$(AZURE_TENANT_ID)" \
+                --provider Powerfx \
+                --user-auth Storagestate \
+                --log-level Information
+            displayName: "pac test run --provider Powerfx — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
             env:
               user1Email: $(user1Email)
