@@ -4,10 +4,10 @@ name: pate-e2e-$(Rev:rrr)
 # Power Platform — TC1_PJC_001 Pipeline
 # Runs two parallel jobs against the same test file:
 #
-#   Job 1 — pac power-fx run   (ubuntu-latest, bash)
-#   Job 2 — pac test run       (windows-latest, pwsh)
+#   Job 1 — pac test run --provider Powerfx   (ubuntu-latest, bash)
+#   Job 2 — pac test run --provider Canvas    (windows-latest, pwsh)
 #
-# pac CLI is installed by downloading Microsoft.PowerApps.CLI from NuGet.
+# pac CLI is installed by downloading Microsoft.PowerApps.CLI.Tool from NuGet.
 #
 # Test file : tests/TC1_PJC_001.fx.yaml
 # App       : capop_opexcapexapprovalappv34_ddc56
@@ -32,13 +32,13 @@ schedules:
 
 variables:
   - name: POWER_APPS_ENVIRONMENT_URL
-    value: "https://devhugoplaygroundpoc.crm4.dynamics.com/" # CHANGE THIS
+    value: "https://devhugoplaygroundpoc.crm4.dynamics.com/"   # CHANGE THIS
   - name: POWER_APPS_ENVIRONMENT_ID
-    value: "493ec420-26dc-ebc2-9bc0-11821149f051" # CHANGE THIS
+    value: "493ec420-26dc-ebc2-9bc0-11821149f051"              # CHANGE THIS
   - name: AZURE_TENANT_ID
-    value: "47f44079-0021-4177-80c9-68531941e357" # CHANGE THIS
+    value: "47f44079-0021-4177-80c9-68531941e357"              # CHANGE THIS
   - name: user1Email
-    value: "channa.meng.extern@semperitgroup.com" # CHANGE THIS
+    value: "channa.meng.extern@semperitgroup.com"              # CHANGE THIS
   # user1Password — add as a SECRET pipeline variable in ADO
   - name: testPlanFile
     value: "tests/TC1_PJC_001.fx.yaml"
@@ -104,7 +104,7 @@ stages:
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
                 --tenant "$(AZURE_TENANT_ID)" \
                 --provider Powerfx \
-                --user-auth Storagestate \
+                --user-auth EnvironmentVariable \
                 --log-level Information
             displayName: "pac test run --provider Powerfx — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
@@ -125,6 +125,7 @@ stages:
         steps:
           - checkout: self
 
+          # pac.dll targets net10.0 — install before anything else so dotnet resolves correctly
           - task: UseDotNet@2
             displayName: "Use .NET 10"
             inputs:
@@ -183,15 +184,14 @@ stages:
             env:
               user1Password: $(user1Password)
 
-          # pac v2.6.4+: --output-directory is ignored; results always go to
-          # $env:USERPROFILE\Microsoft\TestEngine\TestOutput\<timestamp>\
+          # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           - pwsh: |
               pac test run `
                 --test-plan-file "$(testPlanFile)" `
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" `
                 --tenant "$(AZURE_TENANT_ID)" `
                 --provider Canvas `
-                --user-auth Storagestate `
+                --user-auth EnvironmentVariable `
                 --log-level Information
             displayName: "pac test run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
@@ -199,13 +199,27 @@ stages:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
 
+          # Copy results from %LOCALAPPDATA%\Temp\... to staging so Publish tasks can find them
+          - pwsh: |
+              $src = "$env:LOCALAPPDATA\Temp\Microsoft\TestEngine\TestOutput"
+              $dst = "$(Build.ArtifactStagingDirectory)\TestOutput"
+              if (Test-Path $src) {
+                New-Item -ItemType Directory -Path $dst -Force | Out-Null
+                Copy-Item -Path "$src\*" -Destination $dst -Recurse -Force
+                Write-Host "Copied test output to $dst"
+              } else {
+                Write-Host "##[warning]TestOutput directory not found at: $src"
+              }
+            displayName: "Collect test output"
+            condition: succeededOrFailed()
+
           - task: PublishTestResults@2
-            displayName: "Publish JUnit test results"
+            displayName: "Publish test results (VSTest/TRX)"
             condition: succeededOrFailed()
             inputs:
-              testResultsFormat: JUnit
-              testResultsFiles: "**/*.xml"
-              searchFolder: "$(USERPROFILE)\\Microsoft\\TestEngine\\TestOutput"
+              testResultsFormat: VSTest
+              testResultsFiles: "**/*.trx"
+              searchFolder: "$(Build.ArtifactStagingDirectory)\\TestOutput"
               testRunTitle: "Canvas — TC1_PJC_001"
               failTaskOnFailedTests: true
               mergeTestResults: true
@@ -214,5 +228,5 @@ stages:
             displayName: "Publish test artifacts (video / screenshots)"
             condition: succeededOrFailed()
             inputs:
-              targetPath: "$(USERPROFILE)\\Microsoft\\TestEngine\\TestOutput"
+              targetPath: "$(Build.ArtifactStagingDirectory)\\TestOutput"
               artifact: Canvas-Artifacts-TC1_PJC_001
