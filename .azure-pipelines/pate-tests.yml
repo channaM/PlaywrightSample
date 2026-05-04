@@ -32,13 +32,13 @@ schedules:
 
 variables:
   - name: POWER_APPS_ENVIRONMENT_URL
-    value: "https://devhugoplaygroundpoc.crm4.dynamics.com/"   # CHANGE THIS
+    value: "https://devhugoplaygroundpoc.crm4.dynamics.com/" # CHANGE THIS
   - name: POWER_APPS_ENVIRONMENT_ID
-    value: "493ec420-26dc-ebc2-9bc0-11821149f051"              # CHANGE THIS
+    value: "493ec420-26dc-ebc2-9bc0-11821149f051" # CHANGE THIS
   - name: AZURE_TENANT_ID
-    value: "47f44079-0021-4177-80c9-68531941e357"              # CHANGE THIS
+    value: "47f44079-0021-4177-80c9-68531941e357" # CHANGE THIS
   - name: user1Email
-    value: "channa.meng.extern@semperitgroup.com"              # CHANGE THIS
+    value: "channa.meng.extern@semperitgroup.com" # CHANGE THIS
   # user1Password — add as a SECRET pipeline variable in ADO
   - name: testPlanFile
     value: "tests/TC1_PJC_001.fx.yaml"
@@ -90,7 +90,7 @@ stages:
             displayName: "Install pac CLI from NuGet"
 
           - bash: |
-              pac auth create \
+              $HOME/.dotnet/tools/pac auth create \
                 --environment "$(POWER_APPS_ENVIRONMENT_URL)" \
                 --username "$(user1Email)" \
                 --password "$(user1Password)"
@@ -99,7 +99,7 @@ stages:
               user1Password: $(user1Password)
 
           - bash: |
-              pac test run \
+              $HOME/.dotnet/tools/pac test run \
                 --test-plan-file "$(testPlanFile)" \
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
                 --tenant "$(AZURE_TENANT_ID)" \
