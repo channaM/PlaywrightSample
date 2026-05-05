@@ -193,6 +193,17 @@ stages:
             env:
               user1Password: $(user1Password)
 
+          - pwsh: |
+              $f = "$(storageState.secureFilePath)"
+              Write-Host "Storage state path: $f"
+              if (Test-Path $f) {
+                $json = Get-Content $f | ConvertFrom-Json
+                Write-Host "Cookies: $($json.cookies.Count)  Origins: $($json.origins.Count)"
+              } else {
+                Write-Host "##[error]Storage state file not found at: $f"
+              }
+            displayName: "Verify storage state file"
+
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           # user1StorageState — PATE reads this env var (same naming pattern as emailKey/passwordKey)
           - pwsh: |
