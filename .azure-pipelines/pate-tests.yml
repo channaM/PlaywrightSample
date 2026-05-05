@@ -104,7 +104,7 @@ stages:
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" \
                 --tenant "$(AZURE_TENANT_ID)" \
                 --provider Powerfx \
-                --user-auth EnvironmentVariable \
+                --user-auth Dataverse \
                 --log-level Information
             displayName: "pac test run --provider Powerfx — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
