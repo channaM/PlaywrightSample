@@ -213,6 +213,7 @@ stages:
                 --tenant "$(AZURE_TENANT_ID)" `
                 --provider Canvas `
                 --user-auth Storagestate `
+                --use-static-context `
                 --log-level Information
             displayName: "pac test run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
