@@ -214,12 +214,12 @@ stages:
           - pwsh: |
               $src = "$env:LOCALAPPDATA\Temp\Microsoft\TestEngine\TestOutput"
               $dst = "$(Build.ArtifactStagingDirectory)\TestOutput"
+              New-Item -ItemType Directory -Path $dst -Force | Out-Null
               if (Test-Path $src) {
-                New-Item -ItemType Directory -Path $dst -Force | Out-Null
                 Copy-Item -Path "$src\*" -Destination $dst -Recurse -Force
                 Write-Host "Copied test output to $dst"
               } else {
-                Write-Host "##[warning]TestOutput directory not found at: $src"
+                Write-Host "##[warning]TestOutput not found at $src — publishing empty artifact"
               }
             displayName: "Collect test output"
             condition: succeededOrFailed()
