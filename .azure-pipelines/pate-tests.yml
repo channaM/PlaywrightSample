@@ -204,8 +204,23 @@ stages:
               }
             displayName: "Verify storage state file"
 
+          # Copy storage state to locations PATE may search by default
+          - pwsh: |
+              $src = "$(storageState.secureFilePath)"
+              $dirs = @(
+                "$(Build.SourcesDirectory)",
+                "$(Build.SourcesDirectory)\tests"
+              )
+              $names = @("storageState.json", "User1-storagestate.json", "user1-storagestate.json")
+              foreach ($dir in $dirs) {
+                foreach ($name in $names) {
+                  Copy-Item $src "$dir\$name" -Force
+                }
+              }
+              Write-Host "Storage state seeded to working and test directories"
+            displayName: "Seed storage state to working directories"
+
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
-          # user1StorageState — PATE reads this env var (same naming pattern as emailKey/passwordKey)
           - pwsh: |
               pac test run `
                 --test-plan-file "$(testPlanFile)" `
@@ -220,7 +235,6 @@ stages:
             env:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
-              user1StorageState: $(storageState.secureFilePath)
 
           # Copy results from %LOCALAPPDATA%\Temp\... to staging so Publish tasks can find them
           - pwsh: |
