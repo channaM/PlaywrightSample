@@ -63,11 +63,10 @@ testSettings:
   recordVideo: true
   headless: true
   enablePowerFxOverlay: false
-  timeout: 30000
+  timeout: 60000
 environmentVariables:
   filePath:
   users:
   - personaName: User1
     emailKey: user1Email
     passwordKey: user1Password
-    storageStateKey: user1StorageState
