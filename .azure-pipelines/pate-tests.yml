@@ -132,7 +132,7 @@ stages:
             displayName: "Download PATE storage state"
             name: storageState
             inputs:
-              secureFile: "pate-user1-storagestate.json"
+              secureFile: "pate-storagestate.json"
 
           # pac.dll targets net10.0 — install before anything else so dotnet resolves correctly
           - task: UseDotNet@2
