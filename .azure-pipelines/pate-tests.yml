@@ -9,6 +9,11 @@ name: pate-e2e-$(Rev:rrr)
 #
 # pac CLI is installed by downloading Microsoft.PowerApps.CLI.Tool from NuGet.
 #
+# PREREQUISITES:
+#   The test account (user1Email) must be excluded from MFA / Conditional
+#   Access in Azure AD so that pac auth create (username + password) can
+#   authenticate without interactive prompts.
+#
 # Test file : tests/TC1_PJC_001.fx.yaml
 # App       : capop_opexcapexapprovalappv34_ddc56
 # Persona   : User1  (env vars: user1Email / user1Password)
@@ -82,7 +87,6 @@ stages:
                 echo "##vso[task.prependpath]$PAC_DIR/bin"
                 "$PAC_DIR/bin/pac" help
               else
-                # Diagnostic: show root-level DLLs (skip locale subdirs) to find entry point
                 echo "##[error]pac.dll not found. Root DLLs in package:"
                 find "$PAC_DIR/pkg" -name "*.dll" -not -path "*/*-*/*" -not -path "*/shims/*" | sort
                 exit 1
@@ -114,6 +118,8 @@ stages:
 
       # ══════════════════════════════════════════════════════════════════════════
       # Job 2 — pac test run --provider Canvas (windows-latest)
+      # Requires the test account to be excluded from MFA in Azure AD so that
+      # pac auth create can authenticate non-interactively.
       # ══════════════════════════════════════════════════════════════════════════
       - job: CanvasTestRun
         displayName: "pac test run --provider Canvas"
@@ -124,15 +130,6 @@ stages:
 
         steps:
           - checkout: self
-
-          # Download the pre-authenticated Playwright storage state from ADO Secure Files.
-          # Generate locally with: node generate-pate-storagestate.js (headed, complete MFA once)
-          # Upload to: ADO → Pipelines → Library → Secure Files → pate-user1-storagestate.json
-          - task: DownloadSecureFile@1
-            displayName: "Download PATE storage state"
-            name: storageState
-            inputs:
-              secureFile: "pate-storagestate.json"
 
           # pac.dll targets net10.0 — install before anything else so dotnet resolves correctly
           - task: UseDotNet@2
@@ -193,33 +190,6 @@ stages:
             env:
               user1Password: $(user1Password)
 
-          - pwsh: |
-              $f = "$(storageState.secureFilePath)"
-              Write-Host "Storage state path: $f"
-              if (Test-Path $f) {
-                $json = Get-Content $f | ConvertFrom-Json
-                Write-Host "Cookies: $($json.cookies.Count)  Origins: $($json.origins.Count)"
-              } else {
-                Write-Host "##[error]Storage state file not found at: $f"
-              }
-            displayName: "Verify storage state file"
-
-          # Copy storage state to locations PATE may search by default
-          - pwsh: |
-              $src = "$(storageState.secureFilePath)"
-              $dirs = @(
-                "$(Build.SourcesDirectory)",
-                "$(Build.SourcesDirectory)\tests"
-              )
-              $names = @("storageState.json", "User1-storagestate.json", "user1-storagestate.json")
-              foreach ($dir in $dirs) {
-                foreach ($name in $names) {
-                  Copy-Item $src "$dir\$name" -Force
-                }
-              }
-              Write-Host "Storage state seeded to working and test directories"
-            displayName: "Seed storage state to working directories"
-
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           - pwsh: |
               pac test run `
@@ -227,8 +197,7 @@ stages:
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" `
                 --tenant "$(AZURE_TENANT_ID)" `
                 --provider Canvas `
-                --user-auth Storagestate `
-                --use-static-context `
+                --user-auth Dataverse `
                 --log-level Information
             displayName: "pac test run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
