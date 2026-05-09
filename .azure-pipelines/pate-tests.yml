@@ -191,6 +191,15 @@ stages:
           - pwsh: pac auth list
             displayName: "Verify pac auth profile"
 
+          # Download the pre-authenticated Playwright storage state from ADO Secure Files.
+          # Generate locally with: node generate-pate-storagestate.js (headed, complete MFA once)
+          # Upload to: ADO → Pipelines → Library → Secure Files → pate-user1-storagestate.json
+          - task: DownloadSecureFile@1
+            displayName: "Download storage state (pate-user1-storagestate.json)"
+            name: storageState
+            inputs:
+              secureFile: "pate-user1-storagestate.json"
+
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           - pwsh: |
               pac test run `
@@ -198,7 +207,7 @@ stages:
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" `
                 --tenant "$(AZURE_TENANT_ID)" `
                 --provider Canvas `
-                --user-auth Dataverse `
+                --user-auth Storagestate `
                 --log-level Information
             displayName: "pac test run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
@@ -206,6 +215,7 @@ stages:
             env:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
+              user1StorageState: $(storageState.secureFilePath)
 
           # Copy results from %LOCALAPPDATA%\Temp\... to staging so Publish tasks can find them
           - pwsh: |
