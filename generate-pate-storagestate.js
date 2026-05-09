@@ -11,7 +11,22 @@
  *   npm install playwright   (or: npx playwright install chromium)
  */
 
-const { chromium } = require('playwright');
+const [major] = process.versions.node.split('.').map(Number);
+if (major < 18) {
+  console.error(`Node.js 18+ required (current: v${process.versions.node})`);
+  console.error('Run with: nvm use 20 && node generate-pate-storagestate.js');
+  process.exit(1);
+}
+
+let chromium;
+try {
+  ({ chromium } = require('playwright'));
+} catch {
+  const { execSync } = require('child_process');
+  console.log('playwright not found — installing locally…');
+  execSync('npm install --no-save playwright', { stdio: 'inherit', cwd: __dirname });
+  ({ chromium } = require('playwright'));
+}
 const fs = require('fs');
 const path = require('path');
 const readline = require('readline');

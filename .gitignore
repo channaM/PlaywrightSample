@@ -104,3 +104,7 @@ cert/
 
 # Local dev / scratch files
 bugs.json
+
+# PATE storage state — contains auth tokens, never commit (upload to ADO Secure Files instead)
+pate-user1-storagestate.json
+node_modules/
