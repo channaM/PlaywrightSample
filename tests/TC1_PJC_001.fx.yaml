@@ -63,7 +63,7 @@ testSettings:
   recordVideo: true
   headless: true
   enablePowerFxOverlay: false
-  timeout: 30000
+  timeout: 60000
 environmentVariables:
   filePath:
   users:

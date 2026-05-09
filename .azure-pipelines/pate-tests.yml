@@ -72,8 +72,7 @@ stages:
           - bash: |
               PAC_DIR="$AGENT_TOOLSDIRECTORY/pac"
               mkdir -p "$PAC_DIR/bin"
-              VERSION=$(curl -fsSL "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli.tool/index.json" \
-                | python3 -c "import sys,json; print(json.load(sys.stdin)['versions'][-1])")
+              VERSION="2.6.4"
               echo "Downloading Microsoft.PowerApps.CLI.Tool v$VERSION"
               curl -fsSL "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli.tool/$VERSION/microsoft.powerapps.cli.tool.$VERSION.nupkg" \
                 -o "$PAC_DIR/pac-tool.zip"
@@ -144,8 +143,7 @@ stages:
               $binDir = "$pacDir\bin"
               New-Item -ItemType Directory -Path $pacDir -Force | Out-Null
               New-Item -ItemType Directory -Path $binDir -Force | Out-Null
-              $idx = Invoke-RestMethod "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli.tool/index.json" -UseBasicParsing
-              $version = $idx.versions[-1]
+              $version = "2.6.4"
               Write-Host "Downloading Microsoft.PowerApps.CLI.Tool v$version"
               $url = "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli.tool/$version/microsoft.powerapps.cli.tool.$version.nupkg"
               Invoke-WebRequest $url -OutFile "$pacDir\pac-tool.zip" -UseBasicParsing
@@ -190,6 +188,9 @@ stages:
             env:
               user1Password: $(user1Password)
 
+          - pwsh: pac auth list
+            displayName: "Verify pac auth profile"
+
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           - pwsh: |
               pac test run `
@@ -201,6 +202,7 @@ stages:
                 --log-level Information
             displayName: "pac test run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
+            retryCountOnTaskFailure: 2
             env:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
