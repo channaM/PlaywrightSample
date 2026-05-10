@@ -205,9 +205,12 @@ stages:
               $src = "$(storageState.secureFilePath)"
               $dst = "$(Build.SourcesDirectory)\pate-user1-storagestate.json"
               Copy-Item -Path $src -Destination $dst -Force
-              Write-Host "Storage state: $dst  ($([math]::Round((Get-Item $dst).Length/1KB, 1)) KB)"
-              pac test run --help 2>&1 | Select-String -Pattern "storage|state|cloud" -CaseSensitive:$false
-            displayName: "Stage storage state + check pac test run flags"
+              Write-Host "Storage state staged: $dst  ($([math]::Round((Get-Item $dst).Length/1KB, 1)) KB)"
+              Write-Host ""
+              Write-Host "=== pac test run --help ==="
+              pac test run --help 2>&1
+              exit 0
+            displayName: "Stage storage state + print pac test run help"
 
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           - pwsh: |
