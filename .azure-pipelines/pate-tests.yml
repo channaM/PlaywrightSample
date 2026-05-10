@@ -72,7 +72,7 @@ stages:
           - bash: |
               PAC_DIR="$AGENT_TOOLSDIRECTORY/pac"
               mkdir -p "$PAC_DIR/bin"
-              VERSION="2.6.4"
+              VERSION="2.6.3"
               echo "Downloading Microsoft.PowerApps.CLI.Tool v$VERSION"
               curl -fsSL "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli.tool/$VERSION/microsoft.powerapps.cli.tool.$VERSION.nupkg" \
                 -o "$PAC_DIR/pac-tool.zip"
@@ -143,7 +143,7 @@ stages:
               $binDir = "$pacDir\bin"
               New-Item -ItemType Directory -Path $pacDir -Force | Out-Null
               New-Item -ItemType Directory -Path $binDir -Force | Out-Null
-              $version = "2.6.4"
+              $version = "2.6.3"
               Write-Host "Downloading Microsoft.PowerApps.CLI.Tool v$version"
               $url = "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli.tool/$version/microsoft.powerapps.cli.tool.$version.nupkg"
               Invoke-WebRequest $url -OutFile "$pacDir\pac-tool.zip" -UseBasicParsing
