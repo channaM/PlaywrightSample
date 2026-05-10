@@ -191,27 +191,6 @@ stages:
           - pwsh: pac auth list
             displayName: "Verify pac auth profile"
 
-          # Download the pre-authenticated Playwright storage state from ADO Secure Files.
-          # Generate locally with: node generate-pate-storagestate.js (headed, complete MFA once)
-          # Upload to: ADO → Pipelines → Library → Secure Files → pate-user1-storagestate.json
-          - task: DownloadSecureFile@1
-            displayName: "Download storage state (pate-user1-storagestate.json)"
-            name: storageState
-            inputs:
-              secureFile: "pate-user1-storagestate.json"
-
-          # Copy storage state to working directory so PATE can find it via relative path
-          - pwsh: |
-              $src = "$(storageState.secureFilePath)"
-              $dst = "$(Build.SourcesDirectory)\pate-user1-storagestate.json"
-              Copy-Item -Path $src -Destination $dst -Force
-              Write-Host "Storage state staged: $dst  ($([math]::Round((Get-Item $dst).Length/1KB, 1)) KB)"
-              Write-Host ""
-              Write-Host "=== pac test run --help ==="
-              pac test run --help 2>&1
-              exit 0
-            displayName: "Stage storage state + print pac test run help"
-
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           - pwsh: |
               pac test run `
@@ -219,7 +198,7 @@ stages:
                 --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" `
                 --tenant "$(AZURE_TENANT_ID)" `
                 --provider Canvas `
-                --user-auth Storagestate `
+                --user-auth Dataverse `
                 --log-level Information
             displayName: "pac test run — TC1_PJC_001.fx.yaml"
             workingDirectory: $(Build.SourcesDirectory)
@@ -227,7 +206,6 @@ stages:
             env:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
-              user1StorageState: $(storageState.secureFilePath)
 
           # Copy results from %LOCALAPPDATA%\Temp\... to staging so Publish tasks can find them
           - pwsh: |
