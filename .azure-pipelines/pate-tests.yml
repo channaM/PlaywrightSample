@@ -225,7 +225,6 @@ stages:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
               user1StorageState: $(storageState.secureFilePath)
-              User1StorageState: $(storageState.secureFilePath)
 
           # Copy results from %LOCALAPPDATA%\Temp\... to staging so Publish tasks can find them
           - pwsh: |
