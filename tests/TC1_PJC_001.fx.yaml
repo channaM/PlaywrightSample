@@ -70,4 +70,3 @@ environmentVariables:
   - personaName: User1
     emailKey: user1Email
     passwordKey: user1Password
-    storageStateKey: user1StorageState

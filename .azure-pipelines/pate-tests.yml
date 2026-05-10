@@ -200,6 +200,15 @@ stages:
             inputs:
               secureFile: "pate-user1-storagestate.json"
 
+          # Copy storage state to working directory so PATE can find it via relative path
+          - pwsh: |
+              $src = "$(storageState.secureFilePath)"
+              $dst = "$(Build.SourcesDirectory)\pate-user1-storagestate.json"
+              Copy-Item -Path $src -Destination $dst -Force
+              Write-Host "Storage state: $dst  ($([math]::Round((Get-Item $dst).Length/1KB, 1)) KB)"
+              pac test run --help 2>&1 | Select-String -Pattern "storage|state|cloud" -CaseSensitive:$false
+            displayName: "Stage storage state + check pac test run flags"
+
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           - pwsh: |
               pac test run `
@@ -216,6 +225,7 @@ stages:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
               user1StorageState: $(storageState.secureFilePath)
+              User1StorageState: $(storageState.secureFilePath)
 
           # Copy results from %LOCALAPPDATA%\Temp\... to staging so Publish tasks can find them
           - pwsh: |
