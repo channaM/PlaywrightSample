@@ -168,6 +168,21 @@ stages:
               }
             displayName: "Install pac CLI from NuGet"
 
+          # Dump pac test run --help and any YAML schema files bundled in the package.
+          # This lets us discover the correct field names / CLI flags without guessing.
+          - pwsh: |
+              Write-Host "=== pac test run --help ==="
+              pac test run --help
+              Write-Host ""
+              Write-Host "=== JSON / schema files in pac package ==="
+              $pacDir = "$env:AGENT_TOOLSDIRECTORY\pac"
+              Get-ChildItem "$pacDir\pkg" -Include "*.json","*.xsd","*.schema","*.jsonschema" -Recurse |
+                Where-Object { $_.Length -lt 500KB } |
+                Select-Object FullName, Length |
+                Sort-Object FullName
+            displayName: "Dump pac test run help + schema files"
+            continueOnError: true
+
           - task: NodeTool@0
             displayName: "Use Node.js 20.x"
             inputs:
