@@ -2,26 +2,19 @@ name: pate-e2e-$(Rev:rrr)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Power Platform — TC1_PJC_001 Pipeline
-# Runs two parallel jobs against the same test file:
 #
 #   Job 1 — pac test run --provider Powerfx   (ubuntu-latest, bash)
-#   Job 2 — pac test run --provider Canvas    (windows-latest, pwsh)
+#            Fast Power Fx expression validation; no browser required.
 #
-# pac CLI is installed by downloading Microsoft.PowerApps.CLI.Tool from NuGet.
+#   Job 2 — npx playwright test --project=pjc  (ubuntu-latest, bash)
+#            Full browser test using packages/e2e-tests/tests/pjc/TC1_PJC_001.test.ts.
+#            Storage state is downloaded from ADO Secure Files and passed via
+#            PATE_USER1_STORAGE_STATE so playwright.config.ts picks it up.
 #
 # PREREQUISITES:
-#   The test account (user1Email) must be excluded from MFA / Conditional
-#   Access in Azure AD so that pac auth create (username + password) can
-#   authenticate without interactive prompts.
-#
-# Test file : tests/TC1_PJC_001.fx.yaml
-# App       : capop_opexcapexapprovalappv34_ddc56
-# Persona   : User1  (env vars: user1Email / user1Password)
-#
-# BEFORE USE:
-#   1. Replace every "# CHANGE THIS" value below with your own.
-#   2. Add pipeline secret variables in ADO:
-#        user1Password = <test account password>
+#   • ADO Secure Files: pate-user1-storagestate.json
+#       (generated locally with generate-pate-storagestate.js)
+#   • Pipeline secret variable: user1Password
 # ─────────────────────────────────────────────────────────────────────────────
 
 trigger: none
@@ -116,178 +109,68 @@ stages:
               user1Password: $(user1Password)
 
       # ══════════════════════════════════════════════════════════════════════════
-      # Job 2 — pac test run --provider Canvas (windows-latest)
-      # Requires the test account to be excluded from MFA in Azure AD so that
-      # pac auth create can authenticate non-interactively.
+      # Job 2 — npx playwright test --project=pjc (ubuntu-latest)
+      # Runs packages/e2e-tests/tests/pjc/TC1_PJC_001.test.ts via the standard
+      # Playwright toolkit pipeline. Storage state is pulled from ADO Secure
+      # Files and injected as PATE_USER1_STORAGE_STATE.
       # ══════════════════════════════════════════════════════════════════════════
       - job: CanvasTestRun
-        displayName: "pac test run --provider Canvas"
+        displayName: "npx playwright test --project=pjc"
         timeoutInMinutes: 60
         pool:
           name: "Azure Pipelines"
-          vmImage: "windows-latest"
+          vmImage: "ubuntu-latest"
 
         steps:
           - checkout: self
-
-          # pac.dll targets net10.0 — install before anything else so dotnet resolves correctly
-          - task: UseDotNet@2
-            displayName: "Use .NET 10"
-            inputs:
-              packageType: sdk
-              version: "10.x"
-
-          # Download Microsoft.PowerApps.CLI.Tool from NuGet (tool entry point package)
-          - pwsh: |
-              $pacDir = "$env:AGENT_TOOLSDIRECTORY\pac"
-              $binDir = "$pacDir\bin"
-              New-Item -ItemType Directory -Path $pacDir -Force | Out-Null
-              New-Item -ItemType Directory -Path $binDir -Force | Out-Null
-              $version = "2.6.3"
-              Write-Host "Downloading Microsoft.PowerApps.CLI.Tool v$version"
-              $url = "https://api.nuget.org/v3-flatcontainer/microsoft.powerapps.cli.tool/$version/microsoft.powerapps.cli.tool.$version.nupkg"
-              Invoke-WebRequest $url -OutFile "$pacDir\pac-tool.zip" -UseBasicParsing
-              Expand-Archive "$pacDir\pac-tool.zip" -DestinationPath "$pacDir\pkg" -Force
-
-              # Skip the shim (it needs a .store/ relative path that doesn't exist
-              # when extracted manually). Find pac.dll and wrap with dotnet instead.
-              $pacDll = Get-ChildItem "$pacDir\pkg" -Filter "pac.dll" -Recurse |
-                        Select-Object -First 1
-              if ($pacDll) {
-                Write-Host "Found pac.dll at: $($pacDll.FullName)"
-                "@echo off`r`ndotnet `"$($pacDll.FullName)`" %*" |
-                  Set-Content -Path "$binDir\pac.cmd" -Encoding ASCII
-                Write-Host "##vso[task.prependpath]$binDir"
-                & dotnet $pacDll.FullName help
-              } else {
-                Write-Error "pac.dll not found. Root-level DLLs in package:"
-                Get-ChildItem "$pacDir\pkg" -Filter "*.dll" -Recurse |
-                  Where-Object { $_.FullName -notmatch '\\[a-z]{2}(-[A-Za-z]{2,4})?\\' } |
-                  Select-Object FullName | Sort-Object FullName
-                exit 1
-              }
-            displayName: "Install pac CLI from NuGet"
-
-          # Search the PATE test engine JS files for storageState field names.
-          # The test plan YAML schema is a Zod schema compiled into the engine JS.
-          - pwsh: |
-              $ErrorActionPreference = 'SilentlyContinue'
-              $toolDir = "$env:AGENT_TOOLSDIRECTORY\pac\pkg\tools\net10.0\any"
-
-              Write-Host "=== pac test run --help ==="
-              pac test run --help 2>&1
-              Write-Host "(exit: $LASTEXITCODE)"
-
-              Write-Host ""
-              Write-Host "=== Top-level files in test engine directory ==="
-              Get-ChildItem $toolDir -File | Select-Object Name, @{N='KB';E={[int]($_.Length/1KB)}} | Format-Table -AutoSize
-
-              Write-Host ""
-              Write-Host "=== JS files outside node_modules ==="
-              Get-ChildItem $toolDir -Filter "*.js" -Recurse |
-                Where-Object { $_.FullName -notmatch '\\node_modules\\' } |
-                Select-Object Name, @{N='KB';E={[int]($_.Length/1KB)}} | Format-Table -AutoSize
-
-              Write-Host ""
-              Write-Host "=== Files mentioning 'storageState' (outside node_modules) ==="
-              Get-ChildItem $toolDir -Recurse -File |
-                Where-Object { $_.FullName -notmatch '\\node_modules\\' -and $_.Length -lt 10MB } |
-                ForEach-Object {
-                  if (Select-String -Path $_.FullName -Pattern 'storageState' -Quiet -ErrorAction SilentlyContinue) {
-                    Write-Host $_.FullName
-                    Select-String -Path $_.FullName -Pattern 'storageState' | Select-Object -First 30 |
-                      ForEach-Object { "  $($_.Line.Trim())" | Write-Host }
-                    Write-Host ""
-                  }
-                }
-
-              Write-Host ""
-              Write-Host "=== node_modules JS files mentioning 'storageStateKey' ==="
-              Get-ChildItem "$toolDir\node_modules" -Filter "*.js" -Recurse -ErrorAction SilentlyContinue |
-                Where-Object { $_.Length -lt 5MB } |
-                ForEach-Object {
-                  if (Select-String -Path $_.FullName -Pattern 'storageStateKey' -Quiet -ErrorAction SilentlyContinue) {
-                    Write-Host $_.FullName
-                    Select-String -Path $_.FullName -Pattern 'storageStateKey' | Select-Object -First 10 |
-                      ForEach-Object { "  $($_.Line.Trim())" | Write-Host }
-                    Write-Host ""
-                  }
-                }
-              exit 0
-            displayName: "Search PATE engine for storageState field names"
-            continueOnError: true
 
           - task: NodeTool@0
             displayName: "Use Node.js 20.x"
             inputs:
               versionSpec: "20.x"
 
-          # PATE uses Chromium internally — --with-deps is Linux-only, omit on Windows
-          - pwsh: npx playwright install chromium
-            displayName: "Pre-install Chromium for PATE"
+          - bash: |
+              corepack enable
+              corepack prepare pnpm@10.28.1 --activate
+            displayName: "Enable corepack + pnpm"
+
+          - bash: npm install -g @microsoft/rush
+            displayName: "Install Rush"
+
+          - bash: node common/scripts/install-run-rush.js install --bypass-policy
+            displayName: "Rush install"
+
+          - bash: node common/scripts/install-run-rush.js build --to power-platform-playwright-toolkit
+            displayName: "Rush build (toolkit)"
+
+          - bash: npx playwright install chromium --with-deps
+            displayName: "Install Playwright Chromium"
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
             failOnStderr: false
             timeoutInMinutes: 15
 
-          - pwsh: |
-              pac auth create `
-                --environment "$(POWER_APPS_ENVIRONMENT_URL)" `
-                --username "$(user1Email)" `
-                --password "$(user1Password)"
-            displayName: "pac auth create"
-            env:
-              user1Password: $(user1Password)
-
-          - pwsh: pac auth list
-            displayName: "Verify pac auth profile"
-
-          # Download the Playwright storage state from ADO Secure Files.
-          # DataverseStorageStateUserManagerModule (pac 2.6.3 --user-auth Dataverse)
-          # requires a pre-seeded browser session in addition to the ROPC token.
           - task: DownloadSecureFile@1
             name: storageState
-            displayName: "Download PATE storage state (Secure Files)"
+            displayName: "Download storage state (Secure Files)"
             inputs:
               secureFile: "pate-user1-storagestate.json"
 
-          # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
-          - pwsh: |
-              pac test run `
-                --test-plan-file "$(testPlanFile)" `
-                --environment-id "$(POWER_APPS_ENVIRONMENT_ID)" `
-                --tenant "$(AZURE_TENANT_ID)" `
-                --provider Canvas `
-                --user-auth Dataverse `
-                --log-level Information
-            displayName: "pac test run — TC1_PJC_001.fx.yaml"
-            workingDirectory: $(Build.SourcesDirectory)
-            retryCountOnTaskFailure: 2
+          - bash: npx playwright test --project=pjc
+            displayName: "Run TC1_PJC_001 Playwright test"
+            workingDirectory: $(Build.SourcesDirectory)/packages/e2e-tests
             env:
-              user1Email: $(user1Email)
-              user1Password: $(user1Password)
-              user1StorageState: $(storageState.secureFilePath)
-
-          # Copy results from %LOCALAPPDATA%\Temp\... to staging so Publish tasks can find them
-          - pwsh: |
-              $src = "$env:LOCALAPPDATA\Temp\Microsoft\TestEngine\TestOutput"
-              $dst = "$(Build.ArtifactStagingDirectory)\TestOutput"
-              New-Item -ItemType Directory -Path $dst -Force | Out-Null
-              if (Test-Path $src) {
-                Copy-Item -Path "$src\*" -Destination $dst -Recurse -Force
-                Write-Host "Copied test output to $dst"
-              } else {
-                Write-Host "##[warning]TestOutput not found at $src — publishing empty artifact"
-              }
-            displayName: "Collect test output"
-            condition: succeededOrFailed()
+              CI: "true"
+              PATE_USER1_STORAGE_STATE: $(storageState.secureFilePath)
+              OUTPUT_DIRECTORY: $(Build.ArtifactStagingDirectory)
 
           - task: PublishTestResults@2
-            displayName: "Publish test results (VSTest/TRX)"
+            displayName: "Publish test results (JUnit)"
             condition: succeededOrFailed()
             inputs:
-              testResultsFormat: VSTest
-              testResultsFiles: "**/*.trx"
-              searchFolder: "$(Build.ArtifactStagingDirectory)\\TestOutput"
-              testRunTitle: "Canvas — TC1_PJC_001"
+              testResultsFormat: JUnit
+              testResultsFiles: "junit-results.xml"
+              searchFolder: "$(Build.ArtifactStagingDirectory)"
+              testRunTitle: "PJC — TC1_PJC_001"
               failTaskOnFailedTests: true
               mergeTestResults: true
 
@@ -295,5 +178,5 @@ stages:
             displayName: "Publish test artifacts (video / screenshots)"
             condition: succeededOrFailed()
             inputs:
-              targetPath: "$(Build.ArtifactStagingDirectory)\\TestOutput"
-              artifact: Canvas-Artifacts-TC1_PJC_001
+              targetPath: "$(Build.ArtifactStagingDirectory)/artifacts"
+              artifact: PJC-Artifacts-TC1_PJC_001
