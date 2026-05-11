@@ -177,6 +177,17 @@ export default defineConfig({
       },
     },
     {
+      name: 'pjc',
+      testDir: path.join(getEnvironmentConfig().testDirectory, 'pjc'),
+      testMatch: '**/*.test.ts',
+      use: {
+        // Storage state for the OPEX/CAPEX approval app (apps.powerapps.com domain).
+        // In CI: set PATE_USER1_STORAGE_STATE to the path of the downloaded secure file.
+        // Locally: run generate-pate-storagestate.js to create pate-user1-storagestate.json.
+        storageState: process.env.PATE_USER1_STORAGE_STATE ?? 'pate-user1-storagestate.json',
+      },
+    },
+    {
       name: 'default',
       testDir: getEnvironmentConfig().testDirectory,
       testMatch: '**/*.test.ts',
