@@ -168,19 +168,53 @@ stages:
               }
             displayName: "Install pac CLI from NuGet"
 
-          # Dump pac test run --help and any YAML schema files bundled in the package.
-          # This lets us discover the correct field names / CLI flags without guessing.
+          # Search the PATE test engine JS files for storageState field names.
+          # The test plan YAML schema is a Zod schema compiled into the engine JS.
           - pwsh: |
+              $ErrorActionPreference = 'SilentlyContinue'
+              $toolDir = "$env:AGENT_TOOLSDIRECTORY\pac\pkg\tools\net10.0\any"
+
               Write-Host "=== pac test run --help ==="
-              pac test run --help
+              pac test run --help 2>&1
+              Write-Host "(exit: $LASTEXITCODE)"
+
               Write-Host ""
-              Write-Host "=== JSON / schema files in pac package ==="
-              $pacDir = "$env:AGENT_TOOLSDIRECTORY\pac"
-              Get-ChildItem "$pacDir\pkg" -Include "*.json","*.xsd","*.schema","*.jsonschema" -Recurse |
-                Where-Object { $_.Length -lt 500KB } |
-                Select-Object FullName, Length |
-                Sort-Object FullName
-            displayName: "Dump pac test run help + schema files"
+              Write-Host "=== Top-level files in test engine directory ==="
+              Get-ChildItem $toolDir -File | Select-Object Name, @{N='KB';E={[int]($_.Length/1KB)}} | Format-Table -AutoSize
+
+              Write-Host ""
+              Write-Host "=== JS files outside node_modules ==="
+              Get-ChildItem $toolDir -Filter "*.js" -Recurse |
+                Where-Object { $_.FullName -notmatch '\\node_modules\\' } |
+                Select-Object Name, @{N='KB';E={[int]($_.Length/1KB)}} | Format-Table -AutoSize
+
+              Write-Host ""
+              Write-Host "=== Files mentioning 'storageState' (outside node_modules) ==="
+              Get-ChildItem $toolDir -Recurse -File |
+                Where-Object { $_.FullName -notmatch '\\node_modules\\' -and $_.Length -lt 10MB } |
+                ForEach-Object {
+                  if (Select-String -Path $_.FullName -Pattern 'storageState' -Quiet -ErrorAction SilentlyContinue) {
+                    Write-Host $_.FullName
+                    Select-String -Path $_.FullName -Pattern 'storageState' | Select-Object -First 30 |
+                      ForEach-Object { "  $($_.Line.Trim())" | Write-Host }
+                    Write-Host ""
+                  }
+                }
+
+              Write-Host ""
+              Write-Host "=== node_modules JS files mentioning 'storageStateKey' ==="
+              Get-ChildItem "$toolDir\node_modules" -Filter "*.js" -Recurse -ErrorAction SilentlyContinue |
+                Where-Object { $_.Length -lt 5MB } |
+                ForEach-Object {
+                  if (Select-String -Path $_.FullName -Pattern 'storageStateKey' -Quiet -ErrorAction SilentlyContinue) {
+                    Write-Host $_.FullName
+                    Select-String -Path $_.FullName -Pattern 'storageStateKey' | Select-Object -First 10 |
+                      ForEach-Object { "  $($_.Line.Trim())" | Write-Host }
+                    Write-Host ""
+                  }
+                }
+              exit 0
+            displayName: "Search PATE engine for storageState field names"
             continueOnError: true
 
           - task: NodeTool@0
