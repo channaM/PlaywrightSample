@@ -191,6 +191,15 @@ stages:
           - pwsh: pac auth list
             displayName: "Verify pac auth profile"
 
+          # Download the Playwright storage state from ADO Secure Files.
+          # DataverseStorageStateUserManagerModule (pac 2.6.3 --user-auth Dataverse)
+          # requires a pre-seeded browser session in addition to the ROPC token.
+          - task: DownloadSecureFile@1
+            name: storageState
+            displayName: "Download PATE storage state (Secure Files)"
+            inputs:
+              secureFile: "pate-user1-storagestate.json"
+
           # Results go to %LOCALAPPDATA%\Temp\Microsoft\TestEngine\TestOutput\<timestamp>\
           - pwsh: |
               pac test run `
@@ -206,6 +215,7 @@ stages:
             env:
               user1Email: $(user1Email)
               user1Password: $(user1Password)
+              user1StorageState: $(storageState.secureFilePath)
 
           # Copy results from %LOCALAPPDATA%\Temp\... to staging so Publish tasks can find them
           - pwsh: |
