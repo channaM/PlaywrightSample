@@ -38,73 +38,82 @@ test.describe('TC1_PJC_001 — OPEX/CAPEX Approval App', () => {
     await ctrl('imp_ProjectNumber').locator('input').fill(AUTO_PROJECT_NUMBER);
     await ctrl('imp_ProjectName').locator('input').fill('AUTO_NAME_002');
 
-    // // Project Manager (people picker — Fluent UI, not a <select>)
-    // await ctrl('drp_ProjectManager').click();
-    // await ctrl('drp_ProjectManager').locator('input').fill('Channa Meng');
-    // await page.waitForTimeout(1000);
-    // await option('Channa Meng').click();
+    // Project Manager — react-combobox with aria-haspopup="dialog"
+    // Clicking the button opens a search dialog; input is inside the dialog, not the control
+    await ctrl('drp_ProjectManager').locator('[role="button"]').click();
+    await canvasFrame
+      .locator('[role="dialog"] input, input[aria-label*="earch"]')
+      .first()
+      .fill('Channa Meng');
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'Channa Meng' }).first().click();
 
     // // CAPEX / OPEX
-    // await ctrl('drp_CapexOpex').click();
-    // await option('OPEX').click();
+    await ctrl('drp_CapexOpex').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'OPEX' }).first().click();
 
     // // Project Type
-    // await ctrl('drp_ProjectType').click();
-    // await option('Consulting').click();
+    await ctrl('drp_ProjectType').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'Consulting' }).first().click();
 
     // // Financial fields
-    // await ctrl('imp_ProjectValue').locator('input').fill('1222');
-    // await ctrl('imp_BudgetAmount').locator('input').fill('1222');
+    await ctrl('imp_ProjectValue').locator('input').fill('1111');
+    await ctrl('imp_BudgetAmount').locator('input').fill('9999');
 
     // // Cost Center
-    // await ctrl('drp_CostCenter').click();
-    // await option('100000000').click();
+    await ctrl('drp_CostCenter').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: '100000000' }).first().click();
 
     // // PSP Element
-    // await ctrl('imp_PSPElement').locator('input').fill('123');
-
-    // // Expand next section
-    // await ctrl('DataCardKey25').click();
+    await ctrl('imp_PSPElement').locator('input').fill('123');
 
     // // EU Taxonomy
-    // await ctrl('drp_EU_Taxonomy').click();
-    // await option('Yes').click();
+    await ctrl('drp_EU_Taxonomy').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'Yes' }).first().click();
 
     // // Legal Entity
-    // await ctrl('drp_LegalEntity').click();
-    // await option('AT11').click();
+    await ctrl('drp_LegalEntity').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'AT11' }).first().click();
 
     // // Business Semperit
-    // await ctrl('drp_BusinessSemperit').click();
-    // await option('Belting').click();
+    await ctrl('drp_BusinessSemperit').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'Belting' }).first().click();
 
     // // Department
-    // await ctrl('drp_Department').click();
-    // await option('Infrastructure').click();
+    await ctrl('drp_Department').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame
+      .locator('[role="option"]')
+      .filter({ hasText: 'Infrastructure' })
+      .first()
+      .click();
 
     // // Project Admin (people picker)
-    // await ctrl('drp_ProjectAdmin').click();
-    // await ctrl('drp_ProjectAdmin').locator('input').fill('Channa Meng');
-    // await page.waitForTimeout(1000);
-    // await option('Channa Meng').click();
+    await ctrl('drp_ProjectAdmin').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'Channa Meng' }).first().click();
 
     // // Comment
-    // await ctrl('imp_Comment').locator('input').fill('TEST AUTOMATION');
+    await ctrl('imp_Comment').locator('textarea').fill('TEST AUTOMATION');
 
     // // Cost Center Owner (people picker)
-    // await ctrl('drp_CostCenterOwner').click();
-    // await ctrl('drp_CostCenterOwner').locator('input').fill('Channa Meng');
-    // await page.waitForTimeout(1000);
-    // await option('Channa Meng').click();
+    await ctrl('drp_CostCenterOwner').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'Channa Meng' }).first().click();
 
     // // Additional Nominated (people picker)
-    // await ctrl('drp_AdditionalNominated').click();
-    // await ctrl('drp_AdditionalNominated').locator('input').fill('Channa Meng');
-    // await page.waitForTimeout(1000);
-    // await option('Channa Meng').click();
+    await ctrl('drp_AdditionalNominated').locator('[role="button"]').click();
+    await page.waitForTimeout(1000);
+    await canvasFrame.locator('[role="option"]').filter({ hasText: 'Channa Meng' }).first().click();
 
     // // Submit
-    // await ctrl('Button3').click();
+    await ctrl('Button3').click();
 
     // // Success message — typo "succesfully" is in the app itself, kept intentionally
     // await expect(ctrl('Label1')).toContainText('submitted succesfully', { timeout: 30000 });
